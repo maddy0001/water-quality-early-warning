@@ -1,0 +1,31 @@
+{
+  "timestamp": "2026-03-06 12:34:58",
+  "classification_models": [
+    "Random Forest",
+    "SVM",
+    "XGBoost"
+  ],
+  "forecasting_models": [
+    "BiLSTM"
+  ],
+  "total_plots": 16,
+  "plots_directory": "C:\\Users\\madhu\\Desktop\\water_contamination_early_warning_system\\outputs\\plots\\evaluation",
+  "classification_best": "Random Forest",
+  "metrics_summary": {
+    "Random Forest": {
+      "accuracy": 0.7421052631578947,
+      "f1_score": 0.6981519507186859,
+      "roc_auc": 0.8481886668850311
+    },
+    "SVM": {
+      "accuracy": 0.6877192982456141,
+      "f1_score": 0.6454183266932271,
+      "roc_auc": 0.7610612512282999
+    },
+    "XGBoost": {
+      "accuracy": 0.7105263157894737,
+      "f1_score": 0.6783625730994152,
+      "roc_auc": 0.8313265640353751
+    }
+  }
+}

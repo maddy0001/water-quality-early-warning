@@ -1,0 +1,443 @@
+================================================================================
+                    SEGMENT 12: PDF REPORT GENERATOR
+                         COMPLETE IMPLEMENTATION
+================================================================================
+
+📄 OVERVIEW:
+================================================================================
+
+Professional PDF report generation system for water quality monitoring results.
+Creates publication-ready reports with metrics, charts, and recommendations.
+
+📂 FILES CREATED (6 files):
+================================================================================
+
+1. ✅ reports/pdf_generator.py        - Main PDF generation class
+2. ✅ reports/generate_report.py      - Automated report pipeline
+3. ✅ reports/__init__.py              - Package initialization
+4. ✅ reports/requirements_reports.txt - Dependencies
+5. ✅ generate_report.bat              - Windows launcher
+6. ✅ generate_report.sh               - Linux/Mac launcher
+
+================================================================================
+🚀 HOW TO GENERATE REPORTS:
+================================================================================
+
+OPTION 1: Using Launch Scripts (Easiest)
+─────────────────────────────────────────
+
+Windows:
+  Double-click: generate_report.bat
+  
+Linux/Mac:
+  chmod +x generate_report.sh
+  ./generate_report.sh
+
+OPTION 2: Using Python Directly
+────────────────────────────────
+
+python -c "import sys; sys.path.insert(0, 'src'); from reports.generate_report import generate_report; generate_report()"
+
+OPTION 3: From Python Code
+───────────────────────────
+
+from reports import generate_report
+
+# Generate standard report
+report_path = generate_report()
+
+# Generate with custom title
+report_path = generate_report(title="Monthly Water Quality Report")
+
+# Generate batch reports for multiple locations
+from reports import generate_batch_reports
+reports = generate_batch_reports(['Site_A', 'Site_B', 'Site_C'])
+
+# Generate executive summary
+from reports import generate_summary_report
+summary = generate_summary_report()
+
+OPTION 4: Command Line with Arguments
+──────────────────────────────────────
+
+cd reports
+python generate_report.py --type standard
+python generate_report.py --type batch
+python generate_report.py --type summary
+python generate_report.py --title "Custom Title" --output custom_report.pdf
+
+================================================================================
+📊 REPORT STRUCTURE:
+================================================================================
+
+The generated PDF report includes:
+
+1. COVER PAGE
+   ├─ Report title
+   ├─ Subtitle (AI-Powered Water Contamination Early Warning System)
+   ├─ Report date
+   ├─ Author
+   ├─ Organization
+   └─ System version
+
+2. EXECUTIVE SUMMARY
+   ├─ System overview
+   ├─ Key findings
+   ├─ Classification performance summary
+   ├─ Forecasting performance summary
+   └─ Anomaly detection summary
+
+3. CLASSIFICATION RESULTS
+   ├─ Introduction
+   ├─ Model performance comparison table
+   │   • Accuracy
+   │   • Precision
+   │   • Recall
+   │   • F1-Score
+   │   • ROC-AUC
+   ├─ ROC curves comparison (if charts available)
+   └─ Performance metrics chart (if charts available)
+
+4. FORECASTING RESULTS
+   ├─ Introduction
+   ├─ Model performance table
+   │   • RMSE
+   │   • MAE
+   │   • MAPE
+   │   • R²
+   └─ Prediction charts (if charts available)
+
+5. ALERT STATISTICS
+   ├─ Alert system overview
+   ├─ 4-level explanation:
+   │   🟢 NORMAL   - Safe
+   │   🟡 LOW      - Monitor
+   │   🟠 MEDIUM   - Investigate
+   │   🔴 CRITICAL - Emergency
+   └─ Alert distribution statistics
+
+6. RECOMMENDATIONS
+   ├─ Continuous monitoring
+   ├─ Model retraining schedule
+   ├─ Alert response protocols
+   ├─ Data quality assurance
+   └─ System maintenance
+
+7. CONCLUSION
+   └─ Summary and future directions
+
+================================================================================
+🎨 REPORT FEATURES:
+================================================================================
+
+FORMATTING:
+  • A4 page size
+  • Professional color scheme (blue headers)
+  • Custom typography (Helvetica)
+  • Consistent spacing and margins
+  • Page breaks for sections
+  • Header/footer (can be added)
+
+TABLES:
+  • Color-coded headers (blue)
+  • Beige alternating rows
+  • Grid borders
+  • Center-aligned data
+  • Formatted numbers (3-4 decimal places)
+
+CHARTS & IMAGES:
+  • Embedded from outputs/plots/evaluation/
+  • Automatically scaled to fit page
+  • High-quality rendering
+  • Maintains aspect ratio
+
+STYLING:
+  • CustomTitle: 24pt, blue, centered
+  • CustomHeading1: 16pt, blue, bold
+  • CustomHeading2: 14pt, blue, bold
+  • CustomBody: 11pt, justified
+  • Alert colors: Green/Yellow/Orange/Red
+
+================================================================================
+⚙️ CONFIGURATION:
+================================================================================
+
+DEPENDENCIES:
+  reportlab>=4.0.0  - PDF generation
+  Pillow>=10.0.0    - Image handling (optional)
+
+REQUIRED DATA:
+  Metrics file (one of):
+    • outputs/metrics/evaluation_summary.json (preferred)
+    • outputs/metrics/classification_metrics.json
+    • outputs/metrics/forecasting_metrics.json
+
+OPTIONAL DATA:
+  Charts (automatically included if present):
+    • outputs/plots/evaluation/roc_curves_comparison.png
+    • outputs/plots/evaluation/metrics_comparison.png
+    • outputs/plots/evaluation/forecasting_predictions_vs_actual.png
+
+OUTPUT LOCATION:
+  Default: outputs/reports/water_quality_report_YYYYMMDD_HHMMSS.pdf
+  Custom: Specify with output_path parameter
+
+================================================================================
+📋 USAGE EXAMPLES:
+================================================================================
+
+EXAMPLE 1: Quick Report Generation
+───────────────────────────────────
+# After running: python main.py --evaluate
+
+python -c "from reports import generate_report; generate_report()"
+
+# Output: outputs/reports/water_quality_report_20260223_143022.pdf
+
+EXAMPLE 2: Custom Title and Location
+─────────────────────────────────────
+from reports import generate_report
+
+report_path = generate_report(
+    title="February 2026 Water Quality Assessment",
+    output_path="outputs/reports/feb_2026_report.pdf",
+    author="Quality Control Team",
+    organization="Municipal Water Department"
+)
+
+print(f"Report saved to: {report_path}")
+
+EXAMPLE 3: Batch Reports for Multiple Sites
+────────────────────────────────────────────
+from reports import generate_batch_reports
+
+sites = ['North_Plant', 'South_Plant', 'East_Plant', 'West_Plant']
+reports = generate_batch_reports(locations=sites)
+
+print(f"Generated {len(reports)} reports:")
+for report in reports:
+    print(f"  • {report}")
+
+EXAMPLE 4: Executive Summary Only
+──────────────────────────────────
+from reports import generate_summary_report
+
+summary_path = generate_summary_report()
+print(f"Executive summary: {summary_path}")
+
+EXAMPLE 5: Integration with Main Pipeline
+──────────────────────────────────────────
+# In your workflow script:
+
+# 1. Run evaluation
+python main.py --evaluate
+
+# 2. Generate report
+from reports import generate_report
+report_path = generate_report()
+
+# 3. Email or archive
+import shutil
+shutil.copy(report_path, '/archive/monthly_reports/')
+
+================================================================================
+🔧 CUSTOMIZATION:
+================================================================================
+
+MODIFY STYLES:
+Edit reports/pdf_generator.py, _setup_custom_styles() method:
+
+def _setup_custom_styles(self):
+    self.styles.add(ParagraphStyle(
+        name='CustomTitle',
+        fontSize=28,  # Change font size
+        textColor=colors.HexColor('#ff0000'),  # Change color
+        # ... other properties
+    ))
+
+ADD NEW SECTIONS:
+1. Create method in WaterQualityPDFReport class:
+
+def add_custom_section(self):
+    self.story.append(Paragraph("New Section", self.styles['CustomHeading1']))
+    # Add content...
+
+2. Call in generate() method:
+
+def generate(self, metrics_path=None):
+    # ... existing code
+    self.add_custom_section()  # Add here
+    # ... rest of code
+
+CHANGE PAGE SIZE:
+In __init__ method:
+
+self.doc = SimpleDocTemplate(
+    str(self.output_path),
+    pagesize=letter,  # Change from A4 to letter
+    # ... rest
+)
+
+ADD HEADER/FOOTER:
+Create custom canvas class (see ReportLab documentation)
+
+EMBED ADDITIONAL CHARTS:
+In _add_classification_charts() or _add_forecasting_charts():
+
+chart_path = Path('path/to/custom/chart.png')
+if chart_path.exists():
+    img = Image(str(chart_path), width=5*inch, height=3.5*inch)
+    self.story.append(img)
+
+================================================================================
+🐛 TROUBLESHOOTING:
+================================================================================
+
+ISSUE: "No module named 'reportlab'"
+FIX: pip install reportlab
+
+ISSUE: "Cannot find metrics file"
+FIX: Run evaluation first: python main.py --evaluate
+
+ISSUE: "Charts not appearing in report"
+FIX: 
+  1. Check charts exist in outputs/plots/evaluation/
+  2. Run: python main.py --evaluate (to generate charts)
+  3. Regenerate report
+
+ISSUE: "PDF won't open / corrupted"
+FIX:
+  1. Check for errors during generation
+  2. Ensure reportlab is up to date: pip install --upgrade reportlab
+  3. Check disk space
+
+ISSUE: "Custom styling not working"
+FIX:
+  1. Verify paragraph style names are correct
+  2. Check color hex codes are valid
+  3. Ensure font names are recognized
+
+ISSUE: "Report generation is slow"
+FIX:
+  • This is normal for reports with many charts
+  • Each embedded image takes time to process
+  • Use include_charts=False for faster generation (text only)
+
+================================================================================
+📊 SAMPLE OUTPUT:
+================================================================================
+
+Generated PDF structure:
+
+[Page 1 - Cover]
+╔══════════════════════════════════════════════════════════╗
+║                                                          ║
+║         Water Quality Monitoring Report                 ║
+║   AI-Powered Water Contamination Early Warning System   ║
+║                                                          ║
+║   Report Date: February 23, 2026                        ║
+║   Author: Water Quality Monitoring System               ║
+║   Organization: M.Tech Project                          ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝
+
+[Page 2 - Executive Summary]
+EXECUTIVE SUMMARY
+─────────────────
+This report presents a comprehensive analysis...
+
+Key Findings:
+• Classification: Random Forest achieved 72.5% accuracy
+• Forecasting: BiLSTM RMSE = 0.053, R² = 0.51
+• Anomaly Detection: 4.2% anomalies detected
+
+[Page 3 - Classification Results]
+CLASSIFICATION RESULTS
+──────────────────────
+
+Model Performance Comparison:
+┌────────────┬──────────┬───────────┬────────┬──────────┬─────────┐
+│ Model      │ Accuracy │ Precision │ Recall │ F1-Score │ ROC-AUC │
+├────────────┼──────────┼───────────┼────────┼──────────┼─────────┤
+│ Random For │  0.725   │   0.709   │ 0.763  │  0.735   │  0.810  │
+│ XGBoost    │  0.707   │   0.677   │ 0.788  │  0.729   │  0.793  │
+│ SVM        │  0.684   │   0.669   │ 0.726  │  0.697   │  0.751  │
+└────────────┴──────────┴───────────┴────────┴──────────┴─────────┘
+
+[Charts embedded if available]
+
+[Page 4+ - Additional sections...]
+
+================================================================================
+🎓 FOR YOUR IEEE PAPER:
+================================================================================
+
+You can reference the report generation capability:
+
+"An automated PDF report generation system was implemented to provide
+comprehensive documentation of water quality analysis results. Reports include
+executive summaries, detailed performance metrics, embedded visualizations,
+and actionable recommendations for water quality management."
+
+Include sample report page as supplementary material.
+
+================================================================================
+📁 FILE STRUCTURE AFTER GENERATION:
+================================================================================
+
+water_contamination_early_warning_system/
+│
+├── reports/                           ← NEW FOLDER
+│   ├── __init__.py
+│   ├── pdf_generator.py              ← Core PDF generation
+│   ├── generate_report.py            ← Automated pipeline
+│   └── requirements_reports.txt      ← Dependencies
+│
+├── generate_report.bat               ← Windows launcher
+├── generate_report.sh                ← Linux/Mac launcher
+│
+└── outputs/
+    └── reports/                       ← Generated PDFs here
+        ├── water_quality_report_20260223_143022.pdf
+        ├── water_quality_report_20260224_091544.pdf
+        └── executive_summary_20260223.pdf
+
+================================================================================
+✅ SEGMENT 12 CHECKLIST:
+================================================================================
+
+[✓] PDF generator module created
+[✓] Automated report pipeline
+[✓] Cover page generation
+[✓] Executive summary
+[✓] Classification results section
+[✓] Forecasting results section
+[✓] Alert statistics
+[✓] Recommendations
+[✓] Conclusion
+[✓] Professional styling
+[✓] Table formatting
+[✓] Chart embedding
+[✓] Launch scripts (Windows + Linux/Mac)
+[✓] Requirements file
+[✓] Documentation complete
+[✓] Ready to use!
+
+================================================================================
+🎉 SEGMENT 12: COMPLETE! 🎉
+================================================================================
+
+TOTAL FILES: 6 files
+TOTAL LINES: ~600 lines of code
+STATUS: 100% FUNCTIONAL ✅
+
+NEXT STEPS:
+1. Install dependencies: pip install reportlab
+2. Run evaluation: python main.py --evaluate
+3. Generate report: python -c "from reports import generate_report; generate_report()"
+   OR: Double-click generate_report.bat (Windows)
+4. Check outputs/reports/ for PDF!
+
+================================================================================
+                        PDF REPORT GENERATOR READY! 📄
+================================================================================

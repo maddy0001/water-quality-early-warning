@@ -1,0 +1,267 @@
+# ================================================================================
+# Water Contamination Early Warning System - .gitignore
+# ================================================================================
+
+# ============================================================================
+# Python
+# ============================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ============================================================================
+# Trained Models (TOO LARGE for GitHub)
+# ============================================================================
+# Classification models
+models/classification/*.pkl
+models/classification/*.joblib
+models/classification/*.h5
+models/classification/*.keras
+
+# Forecasting models  
+models/forecasting/*.h5
+models/forecasting/*.keras
+models/forecasting/*.pkl
+
+# Anomaly detection models
+models/anomaly/*.pkl
+models/anomaly/*.h5
+models/anomaly/*.keras
+models/anomaly/*.json
+
+# Keep folder structure with .gitkeep
+!models/*/.gitkeep
+
+# ============================================================================
+# Processed Data (CAN BE REGENERATED)
+# ============================================================================
+# Processed datasets
+# data/processed/*.csv
+# data/processed/*.npy
+# data/processed/*.pkl
+# data/processed/*.json
+# data/processed/*.mat
+
+# Keep folder structure
+!data/processed/.gitkeep
+
+# Temporary data
+data/temp/*
+data/cache/*
+
+# ============================================================================
+# Generated Outputs
+# ============================================================================
+# Log files
+# outputs/logs/*.log
+# outputs/logs/alerts/*.json
+# *.log
+
+# Generated plots (can be regenerated)
+# outputs/plots/evaluation/*.png
+# outputs/plots/evaluation/*.jpg
+# outputs/plots/evaluation/*.pdf
+# outputs/plots/explainability/*.png
+
+# Reports (large PDFs)
+outputs/reports/*.pdf
+
+# Keep some key analysis outputs (small files)
+!outputs/jupiter/*.txt
+!outputs/jupiter/*.csv
+!outputs/metrics/*.json
+
+# ============================================================================
+# Jupyter Notebook
+# ============================================================================
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Jupyter Notebook metadata
+*.ipynb_meta
+
+# ============================================================================
+# IDE & Editors
+# ============================================================================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============================================================================
+# OS Specific
+# ============================================================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+
+# ============================================================================
+# Temporary Files
+# ============================================================================
+*.tmp
+*.temp
+*.bak
+*.swp
+*.cache
+
+# Compressed files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# ============================================================================
+# Project Specific
+# ============================================================================
+# Execution logs
+execution_*.log
+
+# Temporary test files
+test_*.py
+temp_*.py
+
+# Old/backup files
+*_old.*
+*_backup.*
+*.old
+
+# Dashboard cache
+dashboard/.streamlit/
+
+# Report generation temp files
+reports/temp/*
+
+# ============================================================================
+# Data Files (LARGE)
+# ============================================================================
+# Large MATLAB files
+data/raw/*.mat
+
+# Keep only CSV
+!data/raw/water_potability.csv
+
+# ============================================================================
+# Documentation Build
+# ============================================================================
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# ============================================================================
+# Environment Files (SENSITIVE)
+# ============================================================================
+.env
+.env.local
+.env.*.local
+
+# API keys
+*.key
+secrets.json
+
+# ============================================================================
+# Testing
+# ============================================================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# ============================================================================
+# Keep Important Empty Folders
+# ============================================================================
+!.gitkeep
+
+# ============================================================================
+# INCLUDE (Override exclusions for important files)
+# ============================================================================
+# Keep these metrics files
+!outputs/metrics/classification_metrics.json
+!outputs/metrics/forecasting_metrics.json
+!outputs/metrics/anomaly_metrics.json
+!outputs/metrics/evaluation_summary.json
+!outputs/metrics/feature_importance_summary.json
+
+# Keep analysis outputs
+!outputs/jupiter/classification_findings.txt
+!outputs/jupiter/forecasting_findings.txt
+!outputs/jupiter/anomaly_findings.txt
+!outputs/jupiter/paper_statistics.txt
+!outputs/jupiter/paper_table1_results.csv
+
+# Keep README files
+!README.md
+!*/README.md
+
+# ============================================================================
+# GitHub Specific
+# ============================================================================
+.github/workflows/*.yml

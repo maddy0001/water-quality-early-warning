@@ -1,0 +1,10 @@
+# PDF Report Generator Dependencies
+# Add these to your main requirements.txt
+
+# PDF Generation
+reportlab>=4.0.0
+
+# Optional but recommended
+Pillow>=10.0.0  # For image embedding in PDFs
+
+# Note: All other dependencies should already be installed from main requirements.txt

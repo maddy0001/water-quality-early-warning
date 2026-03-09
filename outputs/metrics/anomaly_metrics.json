@@ -1,0 +1,33 @@
+{
+  "ensemble": {
+    "n_samples": 2847,
+    "n_anomalies_detected": 120,
+    "anomaly_rate": 0.04214963119072708,
+    "voting_threshold": 0.5
+  },
+  "individual": {
+    "Isolation Forest": {
+      "n_anomalies": 143,
+      "anomaly_rate": 0.0502283105022831
+    },
+    "LOF": {
+      "n_anomalies": 7,
+      "anomaly_rate": 0.0024587284861257463
+    },
+    "One-Class SVM": {
+      "n_anomalies": 145,
+      "anomaly_rate": 0.05093080435546189
+    },
+    "Autoencoder": {
+      "n_anomalies": 135,
+      "anomaly_rate": 0.04741833508956796
+    }
+  },
+  "vote_distribution": {
+    "0_votes": 2570,
+    "1_votes": 157,
+    "2_votes": 91,
+    "3_votes": 25,
+    "4_votes": 4
+  }
+}

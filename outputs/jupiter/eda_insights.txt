@@ -1,0 +1,24 @@
+
+1. DATASET CHARACTERISTICS:
+   • Total samples: 3,276
+   • Features: 9 physicochemical parameters
+   • Class imbalance: 1.56:1 (requires handling)
+
+2. DATA QUALITY:
+   • Missing values present in 3 features
+   • Requires imputation strategy for robust modeling
+
+3. FEATURE CORRELATIONS:
+   • Low correlation with target (max: 0.034)
+   • Suggests complex non-linear relationships
+   • Justifies use of ensemble ML methods
+
+4. DISTRIBUTION PATTERNS:
+   • Most features show normal/near-normal distributions
+   • Some outliers present (typical for real-world sensor data)
+
+5. IMPLICATIONS FOR MODELING:
+   • Class balancing required (SMOTE/class weights)
+   • Feature scaling necessary
+   • Ensemble methods preferred over linear models
+   • Cross-validation essential for robust evaluation

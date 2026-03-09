@@ -1,0 +1,2606 @@
+{
+  "alerts": [
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:26.849483",
+      "source": "aggregated",
+      "location": "Site_0",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7037565530385966,
+            0.29624344696140303
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:26.930926",
+      "source": "aggregated",
+      "location": "Site_1",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.5381827683129893,
+            0.4618172316870108
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:27.001290",
+      "source": "aggregated",
+      "location": "Site_2",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6954231422073007,
+            0.304576857792699
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:27.074093",
+      "source": "aggregated",
+      "location": "Site_3",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7391306319372823,
+            0.26086936806271754
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:27.146191",
+      "source": "aggregated",
+      "location": "Site_4",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.744118659222881,
+            0.2558813407771184
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:27.213999",
+      "source": "aggregated",
+      "location": "Site_5",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7791451210622072,
+            0.22085487893779263
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:27.284644",
+      "source": "aggregated",
+      "location": "Site_6",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8326729300656642,
+            0.16732706993433566
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:27.356382",
+      "source": "aggregated",
+      "location": "Site_7",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8559016127685175,
+            0.14409838723148258
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "NORMAL",
+      "level_value": 0,
+      "timestamp": "2026-02-18T13:43:27.428101",
+      "source": "aggregated",
+      "location": "Site_8",
+      "confidence": 0.0,
+      "triggered_by": [
+        "classification:NORMAL",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 1,
+          "probabilities": [
+            0.42921133318601323,
+            0.5707886668139868
+          ],
+          "predicted_class": "potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:27.503717",
+      "source": "aggregated",
+      "location": "Site_9",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6250556533924505,
+            0.37494434660754933
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:27.576608",
+      "source": "aggregated",
+      "location": "Site_10",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6101694591589871,
+            0.38983054084101293
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:27.645911",
+      "source": "aggregated",
+      "location": "Site_11",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6229660465268396,
+            0.37703395347316015
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:27.719071",
+      "source": "aggregated",
+      "location": "Site_12",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8030745441790477,
+            0.19692545582095228
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:27.790502",
+      "source": "aggregated",
+      "location": "Site_13",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.5860116013653368,
+            0.41398839863466314
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "NORMAL",
+      "level_value": 0,
+      "timestamp": "2026-02-18T13:43:27.863822",
+      "source": "aggregated",
+      "location": "Site_14",
+      "confidence": 0.0,
+      "triggered_by": [
+        "classification:NORMAL",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 1,
+          "probabilities": [
+            0.4583441288308459,
+            0.5416558711691541
+          ],
+          "predicted_class": "potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:27.946321",
+      "source": "aggregated",
+      "location": "Site_15",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6886287981712242,
+            0.3113712018287755
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:28.020993",
+      "source": "aggregated",
+      "location": "Site_16",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8696363558411804,
+            0.1303636441588193
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:28.090594",
+      "source": "aggregated",
+      "location": "Site_17",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8054035882941496,
+            0.1945964117058504
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:28.162832",
+      "source": "aggregated",
+      "location": "Site_18",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7695388573154309,
+            0.23046114268456866
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:28.234123",
+      "source": "aggregated",
+      "location": "Site_19",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.683518195037494,
+            0.3164818049625062
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:28.306541",
+      "source": "aggregated",
+      "location": "Site_20",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.5331764888167835,
+            0.46682351118321647
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:28.373891",
+      "source": "aggregated",
+      "location": "Site_21",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7567388673746709,
+            0.2432611326253288
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:28.447022",
+      "source": "aggregated",
+      "location": "Site_22",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8326478861429966,
+            0.16735211385700294
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:28.515467",
+      "source": "aggregated",
+      "location": "Site_23",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7345339971141607,
+            0.26546600288583905
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:28.587258",
+      "source": "aggregated",
+      "location": "Site_24",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6573758775786094,
+            0.34262412242139056
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:28.659424",
+      "source": "aggregated",
+      "location": "Site_25",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7121811041198743,
+            0.28781889588012566
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:28.733096",
+      "source": "aggregated",
+      "location": "Site_26",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6059488930933254,
+            0.3940511069066745
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:28.805202",
+      "source": "aggregated",
+      "location": "Site_27",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6237721352568397,
+            0.3762278647431603
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "MEDIUM",
+      "level_value": 2,
+      "timestamp": "2026-02-18T13:43:28.878027",
+      "source": "aggregated",
+      "location": "Site_28",
+      "confidence": 0.5714285714285715,
+      "triggered_by": [
+        "classification:CRITICAL",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.9322972766410854,
+            0.06770272335891442
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:28.946402",
+      "source": "aggregated",
+      "location": "Site_29",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6876124191717286,
+            0.31238758082827134
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.015236",
+      "source": "aggregated",
+      "location": "Site_30",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7062861609610505,
+            0.2937138390389496
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.085711",
+      "source": "aggregated",
+      "location": "Site_31",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7363283391130163,
+            0.2636716608869835
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.153613",
+      "source": "aggregated",
+      "location": "Site_32",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7949478291646871,
+            0.20505217083531244
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.221669",
+      "source": "aggregated",
+      "location": "Site_33",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6989598754179339,
+            0.3010401245820658
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.294837",
+      "source": "aggregated",
+      "location": "Site_34",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6303568720273574,
+            0.36964312797264254
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.365049",
+      "source": "aggregated",
+      "location": "Site_35",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.875793257209835,
+            0.12420674279016453
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.436846",
+      "source": "aggregated",
+      "location": "Site_36",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8099875330851694,
+            0.19001246691483042
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.510255",
+      "source": "aggregated",
+      "location": "Site_37",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7651804747170975,
+            0.23481952528290242
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.582910",
+      "source": "aggregated",
+      "location": "Site_38",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6126395022785227,
+            0.38736049772147724
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.655208",
+      "source": "aggregated",
+      "location": "Site_39",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7233562550867427,
+            0.2766437449132571
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.727759",
+      "source": "aggregated",
+      "location": "Site_40",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6833239612837607,
+            0.3166760387162392
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.799867",
+      "source": "aggregated",
+      "location": "Site_41",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8083199369846248,
+            0.19168006301537502
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.868947",
+      "source": "aggregated",
+      "location": "Site_42",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6965063845367584,
+            0.30349361546324155
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:29.942043",
+      "source": "aggregated",
+      "location": "Site_43",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8232866803182844,
+            0.17671331968171522
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.012233",
+      "source": "aggregated",
+      "location": "Site_44",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6815823174826557,
+            0.3184176825173445
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.083254",
+      "source": "aggregated",
+      "location": "Site_45",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7079067862934713,
+            0.29209321370652835
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.156488",
+      "source": "aggregated",
+      "location": "Site_46",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8395627637603122,
+            0.1604372362396877
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.228484",
+      "source": "aggregated",
+      "location": "Site_47",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8689593932099581,
+            0.1310406067900416
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.304135",
+      "source": "aggregated",
+      "location": "Site_48",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7937715608234748,
+            0.20622843917652506
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.385706",
+      "source": "aggregated",
+      "location": "Site_49",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8134472519505408,
+            0.18655274804945907
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.454877",
+      "source": "aggregated",
+      "location": "Site_50",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7883339645759154,
+            0.21166603542408424
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.524720",
+      "source": "aggregated",
+      "location": "Site_51",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.669628494047664,
+            0.33037150595233583
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.597237",
+      "source": "aggregated",
+      "location": "Site_52",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6610107249769654,
+            0.33898927502303444
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.669159",
+      "source": "aggregated",
+      "location": "Site_53",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.5580243229374747,
+            0.44197567706252516
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.739932",
+      "source": "aggregated",
+      "location": "Site_54",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7605683320585035,
+            0.23943166794149612
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.807549",
+      "source": "aggregated",
+      "location": "Site_55",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6862530551053615,
+            0.31374694489463806
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.876315",
+      "source": "aggregated",
+      "location": "Site_56",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.585494581039053,
+            0.4145054189609466
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:30.949595",
+      "source": "aggregated",
+      "location": "Site_57",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7370729828788701,
+            0.2629270171211297
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.021141",
+      "source": "aggregated",
+      "location": "Site_58",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7546538176427964,
+            0.24534618235720312
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.090165",
+      "source": "aggregated",
+      "location": "Site_59",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7777749051788129,
+            0.22222509482118685
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.160245",
+      "source": "aggregated",
+      "location": "Site_60",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7994401576928037,
+            0.20055984230719592
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.229110",
+      "source": "aggregated",
+      "location": "Site_61",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7824961977593716,
+            0.2175038022406282
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.297132",
+      "source": "aggregated",
+      "location": "Site_62",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7607407658631071,
+            0.239259234136893
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.368166",
+      "source": "aggregated",
+      "location": "Site_63",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7117999467997759,
+            0.2882000532002241
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.437200",
+      "source": "aggregated",
+      "location": "Site_64",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.554654753025791,
+            0.44534524697420913
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.507691",
+      "source": "aggregated",
+      "location": "Site_65",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7454913531637488,
+            0.2545086468362507
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.580802",
+      "source": "aggregated",
+      "location": "Site_66",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.71256062677068,
+            0.2874393732293197
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.652229",
+      "source": "aggregated",
+      "location": "Site_67",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7247603549758744,
+            0.27523964502412546
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.726372",
+      "source": "aggregated",
+      "location": "Site_68",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7797463925318584,
+            0.22025360746814177
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.798512",
+      "source": "aggregated",
+      "location": "Site_69",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7570031365540624,
+            0.24299686344593754
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.868519",
+      "source": "aggregated",
+      "location": "Site_70",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6607696662052139,
+            0.339230333794786
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:31.945695",
+      "source": "aggregated",
+      "location": "Site_71",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6691430071104202,
+            0.33085699288957954
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.019981",
+      "source": "aggregated",
+      "location": "Site_72",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6843997808644997,
+            0.31560021913550007
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.090041",
+      "source": "aggregated",
+      "location": "Site_73",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6175625736969553,
+            0.3824374263030444
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.161357",
+      "source": "aggregated",
+      "location": "Site_74",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8827149541694435,
+            0.11728504583055611
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.233074",
+      "source": "aggregated",
+      "location": "Site_75",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8394223518412512,
+            0.16057764815874848
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.305953",
+      "source": "aggregated",
+      "location": "Site_76",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6593899438153658,
+            0.3406100561846342
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.378501",
+      "source": "aggregated",
+      "location": "Site_77",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7682173161392087,
+            0.2317826838607907
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.448191",
+      "source": "aggregated",
+      "location": "Site_78",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7476006960834981,
+            0.2523993039165021
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.519619",
+      "source": "aggregated",
+      "location": "Site_79",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8500657891476188,
+            0.14993421085238132
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.592323",
+      "source": "aggregated",
+      "location": "Site_80",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7723419577638557,
+            0.2276580422361439
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.662814",
+      "source": "aggregated",
+      "location": "Site_81",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.74210687502672,
+            0.2578931249732798
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.734071",
+      "source": "aggregated",
+      "location": "Site_82",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7317686815192469,
+            0.2682313184807529
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.806704",
+      "source": "aggregated",
+      "location": "Site_83",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.773285646981221,
+            0.2267143530187787
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.876439",
+      "source": "aggregated",
+      "location": "Site_84",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.5558650388493771,
+            0.44413496115062295
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:32.951465",
+      "source": "aggregated",
+      "location": "Site_85",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6941921817341449,
+            0.30580781826585496
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:33.019832",
+      "source": "aggregated",
+      "location": "Site_86",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8819655193118804,
+            0.1180344806881192
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "NORMAL",
+      "level_value": 0,
+      "timestamp": "2026-02-18T13:43:33.090095",
+      "source": "aggregated",
+      "location": "Site_87",
+      "confidence": 0.0,
+      "triggered_by": [
+        "classification:NORMAL",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 1,
+          "probabilities": [
+            0.4404716185395651,
+            0.5595283814604352
+          ],
+          "predicted_class": "potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:33.160649",
+      "source": "aggregated",
+      "location": "Site_88",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8006544296215303,
+            0.19934557037846976
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:33.230017",
+      "source": "aggregated",
+      "location": "Site_89",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7066656581311439,
+            0.2933343418688559
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:33.299842",
+      "source": "aggregated",
+      "location": "Site_90",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.8147244581731692,
+            0.1852755418268305
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "NORMAL",
+      "level_value": 0,
+      "timestamp": "2026-02-18T13:43:33.368410",
+      "source": "aggregated",
+      "location": "Site_91",
+      "confidence": 0.0,
+      "triggered_by": [
+        "classification:NORMAL",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 1,
+          "probabilities": [
+            0.4776667520452158,
+            0.522333247954784
+          ],
+          "predicted_class": "potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:33.441685",
+      "source": "aggregated",
+      "location": "Site_92",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7288473079808091,
+            0.271152692019191
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:33.510923",
+      "source": "aggregated",
+      "location": "Site_93",
+      "confidence": 0.380952380952381,
+      "triggered_by": [
+        "classification:MEDIUM",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.7511747517739217,
+            0.24882524822607827
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "MEDIUM",
+      "level_value": 2,
+      "timestamp": "2026-02-18T13:43:33.581122",
+      "source": "aggregated",
+      "location": "Site_94",
+      "confidence": 0.5714285714285715,
+      "triggered_by": [
+        "classification:CRITICAL",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.9028350579405252,
+            0.0971649420594748
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:33.652319",
+      "source": "aggregated",
+      "location": "Site_95",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6125199036646921,
+            0.38748009633530794
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:33.721049",
+      "source": "aggregated",
+      "location": "Site_96",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6700153201730832,
+            0.3299846798269167
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:33.791193",
+      "source": "aggregated",
+      "location": "Site_97",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.5904787835395306,
+            0.40952121646046924
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:33.865268",
+      "source": "aggregated",
+      "location": "Site_98",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.5174322165973915,
+            0.4825677834026086
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    },
+    {
+      "level": "LOW",
+      "level_value": 1,
+      "timestamp": "2026-02-18T13:43:33.936945",
+      "source": "aggregated",
+      "location": "Site_99",
+      "confidence": 0.1904761904761905,
+      "triggered_by": [
+        "classification:LOW",
+        "anomaly:NORMAL"
+      ],
+      "details": {
+        "classification": {
+          "prediction": 0,
+          "probabilities": [
+            0.6355545164598323,
+            0.36444548354016754
+          ],
+          "predicted_class": "non-potable"
+        },
+        "anomaly": {
+          "vote_count": 0,
+          "detectors": {}
+        }
+      }
+    }
+  ],
+  "last_updated": "2026-02-18T13:43:33.940077",
+  "total_alerts": 100
+}

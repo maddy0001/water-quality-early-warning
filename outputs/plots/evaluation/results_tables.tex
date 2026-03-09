@@ -1,0 +1,27 @@
+% Classification Results
+\begin{table}[h]
+\centering
+\caption{Classification Model Performance}
+\begin{tabular}{lccccc}
+\hline
+Model & Accuracy & Precision & Recall & F1-Score & ROC-AUC \\
+\hline
+Random Forest & 0.7421 & 0.6250 & 0.7907 & 0.6982 & 0.8482 \\
+Svm & 0.6877 & 0.5645 & 0.7535 & 0.6454 & 0.7611 \\
+Xgboost & 0.7105 & 0.5839 & 0.8093 & 0.6784 & 0.8313 \\
+\hline
+\end{tabular}
+\end{table}
+
+% Forecasting Results
+\begin{table}[h]
+\centering
+\caption{Forecasting Model Performance}
+\begin{tabular}{lcccc}
+\hline
+Model & RMSE & MAE & MAPE & R² \\
+\hline
+Bilstm & 0.052831 & 0.033827 & 19.78% & 0.5178 \\
+\hline
+\end{tabular}
+\end{table}

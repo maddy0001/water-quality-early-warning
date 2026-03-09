@@ -1,0 +1,8 @@
+{
+  "n_sequences": 0,
+  "lookback": 30,
+  "forecast_horizon": 1,
+  "stride": 1,
+  "input_shape": null,
+  "output_shape": null
+}

@@ -1,0 +1,1 @@
+"import sys; sys.path.insert(0, 'src'); from reports.pdf_generator import WaterQualityPDFReport; r = WaterQualityPDFReport(); print(r.generate('outputs/metrics/evaluation_summary.json'))"		
