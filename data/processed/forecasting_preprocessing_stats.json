@@ -1,9 +1,0 @@
-{
-  "original_timesteps": 423,
-  "n_locations": 37,
-  "n_features": 11,
-  "sequences_created": 14541,
-  "train_sequences": 8724,
-  "val_sequences": 2908,
-  "test_sequences": 2909
-}
