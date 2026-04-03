@@ -1,6 +1,0 @@
-Component,Model/Method,Primary Metric,Secondary Metric,Performance
-Classification,Random Forest,0.658,ROC-AUC=0.692,Best
-Classification,XGBoost,0.647,ROC-AUC=0.679,Good
-Classification,SVM,0.619,ROC-AUC=0.655,Good
-Forecasting,BiLSTM-Attention,R²=0.568,RMSE=0.0500,Good
-Anomaly Detection,Ensemble (4 detectors),4.21% detected,120/2847 samples,Good
