@@ -1,0 +1,11 @@
+# ewsv2 (version 2) – separate from the root requirements.txt, which stays pinned for v1.
+# Install into its own environment:  py -3.11 -m venv venv2
+# Packages are added segment by segment; the comment says which segment needs them.
+
+# S0 – data, config, inspection
+numpy>=1.26,<2.0        # <2 keeps TensorFlow-compatible builds for S3
+pandas>=2.1,<2.3
+pyyaml>=6.0
+matplotlib>=3.8
+pyreadr>=0.5            # reads the GECCO 2018 R data files during fetch
+pytest>=8.0

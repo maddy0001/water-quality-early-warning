@@ -1,0 +1,17 @@
+# The complete v2 pipeline. Steps that are not built yet are listed and skipped.
+#   python -m ewsv2 run --config full_pipeline
+extends: base
+run_name: full_pipeline
+
+data:
+  source: gecco2018
+
+pipeline: [load, split, features, signals, inject, triage, fuse, calibrate, explain, report, evaluate]
+
+# Filled in by later segments (names must match registered plug-ins):
+# split:     {name: blocked_with_gap, gap_days: 1}                      # S1
+# signals:   [bilstm_attention, quorum_detectors, ensemble_rf_xgb_svm,  # S2-S4
+#             constancy, coherence]
+# fusion:    {name: stacking}                                           # S5
+# calibrate: {name: conformal_adaptive, false_alarms_per_day: 1}        # S5
+# reporter:  {name: llm_local}                                          # S7
