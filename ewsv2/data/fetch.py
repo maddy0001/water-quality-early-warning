@@ -28,11 +28,8 @@ GECCO2018_FILES = {"train": "geccoIC2018Train.rda", "test": "geccoIC2018Test.rda
 
 ZENODO_2019_API = "https://zenodo.org/api/records/4304080"
 ZENODO_2019_FILE = "https://zenodo.org/records/4304080/files/{name}?download=1"
-GECCO2019_FILES = (
-    "gecco2019_train_water_quality.csv",
-    "gecco2019_valid_water_quality.csv",
-    "gecco2019_test_water_quality.csv",
-)
+# One file holds train + validation + test; the loader splits it at the official boundaries.
+GECCO2019_FILE = "5_gecco2019_all_water_quality.csv"
 
 _UA = {"User-Agent": "ewsv2-fetch/1.0 (research use)"}
 
@@ -97,31 +94,30 @@ def _zenodo_links() -> dict[str, str]:
 
 
 def fetch_gecco2019(data_dir: Path = DATA_DIR, force: bool = False) -> list[Path]:
-    """Download the three GECCO 2019 split files from Zenodo."""
+    """Download the GECCO 2019 'all' file (train + validation + test) from Zenodo."""
     data_dir.mkdir(parents=True, exist_ok=True)
+    existing = [p for p in data_dir.glob("*gecco2019_all*") if p.is_file()]
+    if existing and not force:
+        log.info("Already present: %s", existing[0])
+        return existing[:1]
     try:
         links = _zenodo_links()
     except Exception as exc:
-        log.warning("Zenodo API not reachable (%s); trying direct file links", exc)
+        log.warning("Zenodo API not reachable (%s); trying the direct file link", exc)
         links = {}
-    out = []
-    for name in GECCO2019_FILES:
-        dest = data_dir / name
-        if dest.is_file() and not force:
-            log.info("Already present: %s", dest)
-            out.append(dest)
-            continue
-        url = links.get(name, ZENODO_2019_FILE.format(name=name))
-        try:
-            _download(url, dest)
-        except FetchError as exc:
-            raise FetchError(
-                f"{exc}\nManual fix: open https://zenodo.org/records/4304080, download {name} "
-                f"and save it in {data_dir}"
-            ) from exc
-        log.info("Wrote %s", dest)
-        out.append(dest)
-    return out
+    # Use the API's name for the "all" file if it differs slightly from ours.
+    name = next((k for k in links if "gecco2019_all" in k), GECCO2019_FILE)
+    url = links.get(name, ZENODO_2019_FILE.format(name=name))
+    dest = data_dir / name
+    try:
+        _download(url, dest)
+    except FetchError as exc:
+        raise FetchError(
+            f"{exc}\nManual fix: open https://zenodo.org/records/4304080, download {GECCO2019_FILE} "
+            f"and save it in {data_dir}"
+        ) from exc
+    log.info("Wrote %s", dest)
+    return [dest]
 
 
 FETCHERS = {"gecco2018": fetch_gecco2018, "gecco2019": fetch_gecco2019}

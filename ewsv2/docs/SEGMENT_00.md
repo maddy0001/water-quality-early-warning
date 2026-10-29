@@ -42,7 +42,9 @@ sensors react during real events, and a real frozen sensor.
 3. **Data sources.** `gecco2018`, `gecco2019` and a generic `csv` source. GECCO 2018
    keeps its official train/test periods (test starts 2016-11-08 07:55).
 4. **Fetch.** GECCO 2018 comes from the EventDetectR GitHub repository (same data as
-   Zenodo); GECCO 2019 comes from Zenodo record 4304080. Both are free.
+   Zenodo). GECCO 2019 comes from Zenodo record 4304080 as one file,
+   `5_gecco2019_all_water_quality.csv`, which the loader splits at the official
+   boundaries (validation starts 2017-10-01 00:00, test starts 2017-11-08 00:30). Both are free.
 5. **Inspection.** Sampling and gaps, per-sensor statistics, zero readings, frozen
    stretches, the event list, which sensors move during events, and sensor correlations.
 
@@ -63,7 +65,7 @@ sensors react during real events, and a real frozen sensor.
 | `ewsv2/data/fetch.py` | Downloads GECCO 2018 and 2019 |
 | `ewsv2/data/inspect.py` | The inspection report and charts |
 | `ewsv2/configs/base.yaml`, `s0_inspect.yaml`, `full_pipeline.yaml` | Configs |
-| `ewsv2/tests/` | 25 tests (synthetic data + one check against the real GECCO 2018 counts) |
+| `ewsv2/tests/` | 28 tests (synthetic data + checks against the real GECCO 2018 and 2019 counts) |
 | `ewsv2/requirements.txt` | v2 packages (separate from v1's pinned file) |
 | `.gitignore` | Adds `venv2/`, `data/raw/gecco/`, `outputs_v2/` |
 
@@ -106,10 +108,10 @@ python -m pytest ewsv2\tests -q
 # 6. Pipeline skeleton (shows which steps arrive in later segments)
 python -m ewsv2 run --config full_pipeline
 
-# 7. Save to GitHub
+# 7. Save to GitHub (first push of this branch needs -u once; later just: git push)
 git add ewsv2 .gitignore
 git commit -m "ewsv2 S0: plug-in core, GECCO loaders, data inspection"
-git push
+git push -u origin main
 ```
 
 To go back to v1 at any time: `deactivate`, then `venv\Scripts\activate`, then `python main.py ...` as before.
@@ -142,18 +144,43 @@ Files in `outputs_v2\s0_inspection\gecco2018\`: `report.md`, `summary.json`, `ev
 (one row per event), `sensors.csv`, `event_response.csv`, `correlations.csv`, and
 `figures\overview.png`, `event_lengths.png`, `event_response.png`, `correlations.png`.
 
-### GECCO 2019
+### GECCO 2019 (verified with the files downloaded by hand)
 
-Not run in the cloud sandbox: Zenodo is blocked there. Run step 3–4 on your laptop and
-send me the console output; I will add the numbers here and use them in Segment 6.
+```
+Dataset      : gecco2019
+Rows         : 218,880  (2017-07-01 00:00:00 -> 2017-11-29 23:59:00)
+  train : 132,480 rows, 13 events, 212 event minutes (0.16%)
+  valid : 54,750 rows, 12 events, 225 event minutes (0.411%)
+  test  : 31,650 rows, 12 events, 191 event minutes (0.603%)
+Events total : 37  (median length 16.0 min)
+Top sensors during events: Turb, Cond, pH
+```
+
+| Fact | Value |
+|---|---|
+| Sensors | 6: `Tp`, `pH`, `Cond` (conductivity), `Turb` (turbidity), `SAC` (spectral absorption, organics), `PFM` |
+| Sensor that moves most in events | turbidity: shifts by more than 1 SD in 78% of events; temperature and `PFM` in 0% |
+| Strongest coupling (normal data) | temperature–SAC 0.88, conductivity–SAC −0.77, temperature–conductivity −0.74 |
+| Frozen-sensor candidate | temperature stuck at exactly 12.31 from 2017-10-19 06:49 to 2017-10-26 04:46 (about 7 days; no events inside) |
+| Telemetry glitches | 3 minutes where all sensors read 0 at once (2017-08-24 12:45 and 13:20, 2017-10-10 13:03) |
+| Longest outage | 2,146 minutes from 2017-10-09 01:17 |
+
+The two years show different kinds of events: 2018 events are mostly **pH** changes,
+2019 events mostly **turbidity** changes. A method that works on both is not tuned
+to one sensor, which is why GECCO 2019 is the transfer test in Segment 6.
+
+Which 2019 files you need: only `5_gecco2019_all_water_quality.csv`. If `1_...` and
+`6_..._test...` are also in the folder, the loader still uses the "all" file. If only
+part files are present, it loads them and prints a warning that periods are missing.
 
 ### Test run
 
 ```
-25 passed
+28 passed
 ```
 
-(If the real GECCO 2018 files are missing, the real-data test is skipped and you see `24 passed, 1 skipped`.)
+Two of these tests check the real data (2018: 51 + 46 events; 2019: 212 / 225 / 191 event
+minutes). If a dataset is not downloaded, its test is skipped (e.g. `27 passed, 1 skipped`).
 
 ## 6. Check it worked
 
@@ -170,6 +197,9 @@ send me the console output; I will add the numbers here and use them in Segment 
 | `pyreadr` fails to install | `pip install --upgrade pip`, then retry; or download the 2018 CSV from Zenodo by hand |
 | Fetch fails (firewall) | The error prints the exact link; download in a browser into `data\raw\gecco\` |
 | `pip` tries to build numpy | You are on Python 3.13; recreate the venv with `py -3.11` |
+| `fetch gecco2019` gives HTTP 404 | Fixed in this update (it now downloads `5_gecco2019_all_water_quality.csv`); or download that file by hand |
+| `git push`: no upstream branch | `git push -u origin main` once; plain `git push` afterwards |
+| `LF will be replaced by CRLF` warnings | Harmless: Git converts line endings on Windows; nothing to do |
 
 ## 7. Viva notes
 

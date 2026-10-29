@@ -35,7 +35,16 @@ SENSOR_INFO = {
     "Trueb": "turbidity (Trübung)",
     "Fm": "flow rate, line 1",
     "Fm_2": "flow rate, line 2",
+    # GECCO 2019 names
+    "Cond": "electrical conductivity",
+    "Turb": "turbidity",
+    "SAC": "spectral absorption coefficient (organic matter indicator)",
+    "PFM": "as named by the utility; see the challenge rules on Zenodo",
 }
+
+# GECCO 2019: the "all" file is train (Jul-Sep 2017) + validation + test, back to back.
+GECCO2019_VALID_START = pd.Timestamp("2017-10-01 00:00:00")
+GECCO2019_TEST_START = pd.Timestamp("2017-11-08 00:30:00")
 
 GECCO2018_SENSORS = ["Tp", "Cl", "pH", "Redox", "Leit", "Trueb", "Cl_2", "Fm", "Fm_2"]
 # First minute of the official 2018 test period (end of train is one minute earlier).
@@ -142,11 +151,16 @@ class Gecco2018Source:
 
 @register("source", "gecco2019")
 class Gecco2019Source:
-    """GECCO 2019: separate train, validation and test files from Zenodo record 4304080.
+    """GECCO 2019 (Zenodo record 4304080): train Jul–Sep 2017, validation Oct–8 Nov, test 8–29 Nov.
 
-    Expects files containing ``2019`` and ``train`` / ``valid`` / ``test`` in their
-    names (as on Zenodo). A file with ``all`` in the name is ignored when the three
-    split files are present.
+    Zenodo file names (any of these work, with or without the number prefix):
+
+    * ``5_gecco2019_all_water_quality.csv``   – everything; preferred, split at the
+      official boundaries ``GECCO2019_VALID_START`` / ``GECCO2019_TEST_START``
+    * ``1_gecco2019_water_quality.csv``       – the original training file
+    * ``*train*`` / ``*valid*`` / ``*test*``  – the separate split files
+
+    If the "all" file is missing, whichever split files are present are loaded.
     """
 
     name = "gecco2019"
@@ -155,30 +169,60 @@ class Gecco2019Source:
         self.data_dir = resolve(data_dir) if data_dir else DATA_DIR
         self.sensors = sensors
 
+    @staticmethod
+    def _split_of(path: Path) -> str | None:
+        n = path.name.lower()
+        for split in ("all", "train", "valid", "test"):
+            if split in n:
+                return split
+        if n.endswith("gecco2019_water_quality.csv"):  # Zenodo item 1 = original train file
+            return "train"
+        return None
+
     def load(self) -> Dataset:
         files = _match_files(self.data_dir, "2019")
         if not files:
             raise FileNotFoundError(_missing_data_message(self.name, self.data_dir))
-        by_split = {}
-        for split in ("train", "valid", "test"):
-            hits = [f for f in files if split in f.name.lower() and "all" not in f.name.lower()]
-            if len(hits) > 1:
-                raise DataFormatError(f"More than one GECCO 2019 {split} file: {hits}")
-            if hits:
-                by_split[split] = hits[0]
+        by_split: dict[str, Path] = {}
+        for f in files:
+            split = self._split_of(f)
+            if split is None:
+                continue
+            if split in by_split:
+                raise DataFormatError(f"More than one GECCO 2019 {split} file: {by_split[split]}, {f}")
+            by_split[split] = f
         if not by_split:
-            raise DataFormatError(
-                f"Found {files} but none has train/valid/test in its name; rename them to match Zenodo."
-            )
+            raise DataFormatError(f"Found {files} but cannot tell which split each one is; use the Zenodo names.")
 
-        parts = [(split, read_table(path)) for split, path in by_split.items()]
+        if "all" in by_split:
+            sources = {"all": by_split["all"]}
+        else:
+            sources = {k: v for k, v in by_split.items() if k in ("train", "valid", "test")}
+
+        parts = [(split, read_table(path)) for split, path in sources.items()]
         frames, sensors, notes = _concat(parts, self.sensors)
-        periods = {split: (f.index.min(), f.index.max()) for split, f in frames}
         frame = pd.concat([f for _, f in frames]).sort_index()
         dup = int(frame.index.duplicated().sum())
         if dup:
             notes["overlap_rows_between_files_dropped"] = dup
             frame = frame[~frame.index.duplicated(keep="first")]
+
+        # Periods from the official boundaries, restricted to the data actually loaded.
+        bounds = {
+            "train": (frame.index.min(), GECCO2019_VALID_START - pd.Timedelta(minutes=1)),
+            "valid": (GECCO2019_VALID_START, GECCO2019_TEST_START - pd.Timedelta(minutes=1)),
+            "test": (GECCO2019_TEST_START, frame.index.max()),
+        }
+        periods = {}
+        for name, (a, b) in bounds.items():
+            part = frame.loc[a:b]
+            if len(part):
+                periods[name] = (part.index.min(), part.index.max())
+        if "all" not in sources and set(sources) != {"train", "valid", "test"}:
+            notes["incomplete"] = (
+                f"Only {sorted(sources)} loaded; download 5_gecco2019_all_water_quality.csv for all periods."
+            )
+            log.warning(notes["incomplete"])
 
         return Dataset(
             name=self.name,
@@ -186,7 +230,7 @@ class Gecco2019Source:
             sensors=sensors,
             periods=periods,
             meta={
-                "files": [str(p) for p in by_split.values()],
+                "files": [str(p) for p in sources.values()],
                 "licence": LICENCE,
                 "sensor_info": {s: SENSOR_INFO.get(s, "") for s in sensors},
                 "sampling": "1 minute",
