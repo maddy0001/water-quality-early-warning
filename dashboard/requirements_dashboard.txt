@@ -1,7 +1,8 @@
-# Water Quality Dashboard Requirements
+# Dashboard Dependencies for Water Quality Monitoring System
+# (install the main requirements.txt first: the dashboard uses the trained models,
+#  so it also needs numpy, pandas, scikit-learn, xgboost and tensorflow from there)
+
 streamlit>=1.28.0
-pandas>=2.0.0
-numpy>=1.24.0
+pyarrow==25.0.1   # pyarrow 26+ needs NumPy 2; project uses numpy 1.24.3
 plotly>=5.17.0
-scikit-learn>=1.3.0
-joblib>=1.3.0
+streamlit-option-menu>=0.3.6

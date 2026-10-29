@@ -1,5 +1,5 @@
 """
-Anomaly Detection Page - WITH CLEAR EXPLANATIONS
+Anomaly Detection Page - real trained detectors with 2-of-4 quorum voting
 """
 
 import streamlit as st
@@ -7,371 +7,206 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 
+from . import engine as E
+
+DETECTORS = ['Isolation Forest', 'LOF', 'One-Class SVM', 'Autoencoder']
+
+
 def show():
-    """Display anomaly detection page with explanations"""
-    
     st.markdown("## ⚠️ Anomaly Detection")
-    
-    # Clear explanation at top
+
     st.markdown("""
     <div class='info-box'>
         <h3 style='margin-top: 0;'>🎯 What This Does</h3>
-        <p>This system uses <b>4 different AI detectors</b> to find unusual water quality patterns that might indicate contamination:</p>
+        <p>Four structurally different detectors look for <b>unusual</b> water samples, i.e. samples that do not
+        look like the 2,847 cleaned samples the detectors were trained on:</p>
         <ul>
-            <li><b>Isolation Forest</b> - Finds samples that are "isolated" from normal patterns</li>
-            <li><b>LOF (Local Outlier Factor)</b> - Compares each sample to its neighbors</li>
-            <li><b>One-Class SVM</b> - Learns the boundary of "normal" water quality</li>
-            <li><b>Autoencoder</b> - Neural network that detects reconstruction errors</li>
+            <li><b>Isolation Forest</b> (contamination = 0.05): unusual samples are isolated by random splits quickly</li>
+            <li><b>LOF</b> (k = 20): sample sits in a much emptier region than its neighbours</li>
+            <li><b>One-Class SVM</b> (RBF, ν = 0.05): sample falls outside the learned boundary of normal data</li>
+            <li><b>Autoencoder</b>: sample is rebuilt badly (error above the 95th-percentile threshold)</li>
         </ul>
-        <p><b>Voting System:</b> A sample is flagged as anomaly if <b>2 or more detectors</b> agree (majority voting)</p>
+        <p><b>Quorum voting:</b> a sample is an <b>anomaly</b> only if <b>at least 2 of the 4 detectors</b> agree.</p>
     </div>
     """, unsafe_allow_html=True)
-    
+
+    st.markdown("""
+    <div class='honest-box'>
+        <b>Note:</b> there are no ground-truth contamination labels for this dataset, so precision and recall
+        cannot be measured directly. The published check is the <b>flag rate: 4.21%</b> (120 of 2,847 samples)
+        against an assumed 5% contamination rate, plus the synthetic contamination test (75.6% of injected
+        spikes caught, 5.4% false alarms).
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("---")
-    
-    # Two columns for method info
     col1, col2 = st.columns(2)
-    
     with col1:
         st.markdown("""
         ### 🔍 Detection Method
-        **Ensemble Approach:**
-        - Uses 4 independent detectors
-        - Each votes: Normal (0) or Anomaly (1)
-        - Majority voting (≥2 votes → Anomaly)
-        
-        **Why This Works:**
-        - Reduces false alarms
-        - More reliable than single method
-        - Catches different types of anomalies
+        - 4 independent detectors, each votes Normal (0) or Anomaly (1)
+        - **≥ 2 votes → Anomaly** (quorum)
+        - Alert level from votes: 2 → LOW · 3 → MEDIUM · 4 → CRITICAL
+
+        **Why:** each method has blind spots; two different methods rarely agree by chance,
+        so requiring agreement halves false alarms.
         """)
-    
     with col2:
         st.markdown("""
-        ### 📊 Performance Metrics
-        **Actual Results:**
-        - Precision: 83%
-        - Recall: 72%
-        - F1-Score: 78%
-        - Anomalies Found: 4.21%
-        
-        **Processing Speed:**
-        - <100ms per sample
-        - Real-time capable
+        ### 📊 Published Results *(2,847 samples)*
+        - Flagged as anomaly (≥ 2 votes): **120 (4.21%)**
+        - 3-of-4 agreement: 25 (0.88%)
+        - 4-of-4 (unanimous): 4 (0.14%)
+        - No detector flagged: 2,570 (90.27%)
         """)
-    
+
     st.markdown("---")
-    
-    # Upload section with clear instructions
+    if not E.show_missing(['if', 'ocsvm', 'ae', 'ae_thr', 'scaler', 'raw'], "anomaly detection"):
+        return
+
     st.markdown("### 📤 Step 1: Upload Your Data")
-    st.info("💡 Upload a CSV file with water quality measurements (must have 9 parameters: pH, Hardness, Solids, etc.)")
-    
-    uploaded_file = st.file_uploader(
-        "Choose CSV file",
-        type=['csv'],
-        help="CSV with columns: ph, Hardness, Solids, Chloramines, Sulfate, Conductivity, Organic_carbon, Trihalomethanes, Turbidity"
-    )
-    
-    if uploaded_file:
-        try:
-            df = pd.read_csv(uploaded_file)
-            st.success(f"✅ Loaded {len(df)} samples successfully!")
-            
-            with st.expander("📋 View Your Data (First 10 Rows)"):
-                st.dataframe(df.head(10), use_container_width=True)
-            
-            st.markdown("### 📊 Step 2: Run Detection")
-            
-            if st.button("🔍 Detect Anomalies", type="primary", use_container_width=True):
-                with st.spinner("Running 4-detector ensemble..."):
-                    results = detect_anomalies(df)
-                
-                if results:
-                    display_results_with_explanations(results, df)
-        
-        except Exception as e:
-            st.error(f"❌ Error reading file: {str(e)}")
-            st.info("💡 Make sure your CSV has the correct columns")
-    
-    else:
-        # Show demo when no file uploaded
+    st.info("💡 The CSV needs the 9 water-quality columns (extra columns are ignored): " + ", ".join(E.FEATURES))
+    uploaded = st.file_uploader("Choose CSV file", type=['csv'], key='an_upload')
+
+    if not uploaded:
+        st.session_state.pop('an_results', None)
         st.markdown("---")
-        show_demo_with_explanation()
+        show_illustration()
+        return
 
-
-def detect_anomalies(df):
-    """Detect anomalies using ensemble"""
     try:
-        n_samples = len(df)
-        np.random.seed(42)
-        
-        # Simulate individual detectors
-        if_pred = np.random.choice([0, 1], n_samples, p=[0.95, 0.05])
-        lof_pred = np.random.choice([0, 1], n_samples, p=[0.998, 0.002])
-        svm_pred = np.random.choice([0, 1], n_samples, p=[0.949, 0.051])
-        ae_pred = np.random.choice([0, 1], n_samples, p=[0.953, 0.047])
-        
-        # Count votes for each sample
-        votes = if_pred + lof_pred + svm_pred + ae_pred
-        
-        # Ensemble decision (≥2 votes = anomaly)
-        predictions = (votes >= 2).astype(int)
-        
-        return {
-            'predictions': predictions,
-            'votes': votes,
-            'individual': {
-                'Isolation Forest': if_pred,
-                'LOF': lof_pred,
-                'One-Class SVM': svm_pred,
-                'Autoencoder': ae_pred
-            }
-        }
-    
+        df = E.read_csv(uploaded)
     except Exception as e:
-        st.error(f"Detection error: {e}")
-        return None
+        st.error(f"❌ Could not read the file: {e}")
+        return
+    ok, msg = E.check_water_columns(df)
+    if not ok:
+        st.error("❌ " + msg)
+        if any(c in df.columns for c in E.FORECAST_FEATURES):
+            st.info("This looks like a forecasting file. Upload it on the **📈 pH Forecasting** page instead.")
+        return
+
+    st.success(f"✅ Loaded {len(df)} samples.")
+    with st.expander("📋 View your data (first 10 rows)"):
+        st.dataframe(df.head(10), **E.FULL)
+
+    st.markdown("### 📊 Step 2: Run Detection")
+    key = (uploaded.name, uploaded.size)
+    if st.button("🔍 Detect Anomalies", type="primary", **E.FULL):
+        with st.spinner("Loading the 4 detectors and scoring every sample... (first run takes ~10 s)"):
+            st.session_state['an_results'] = (key, E.detect(df))
+
+    stored = st.session_state.get('an_results')
+    if stored and stored[0] == key:
+        display_results(stored[1], df)
 
 
-def display_results_with_explanations(results, df):
-    """Display results with clear explanations"""
-    
-    predictions = results['predictions']
-    votes = results['votes']
-    
+def display_results(res, df):
+    votes = res['votes'].values
+    pred = res['anomaly'].values
+    n = len(df)
+
     st.markdown("---")
     st.markdown("## 📊 Detection Results")
-    
-    # Summary metrics
-    st.markdown("### 🎯 Summary")
-    
-    normal_count = np.sum(predictions == 0)
-    anomaly_count = np.sum(predictions == 1)
-    high_conf = np.sum(votes >= 3)
-    critical = np.sum(votes == 4)
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("🟢 Normal Samples", normal_count,
-                 f"{normal_count/len(predictions)*100:.1f}%",
-                 help="Samples where <2 detectors flagged issues")
-    
-    with col2:
-        st.metric("🔴 Anomalies Found", anomaly_count,
-                 f"{anomaly_count/len(predictions)*100:.1f}%",
-                 help="Samples where ≥2 detectors agree")
-    
-    with col3:
-        st.metric("⚠️ High Confidence", high_conf,
-                 f"{high_conf/len(predictions)*100:.1f}%",
-                 help="3 or 4 detectors agree - very likely anomaly")
-    
-    with col4:
-        st.metric("🚨 Critical", critical,
-                 f"{critical/len(predictions)*100:.1f}%",
-                 help="ALL 4 detectors agree - definite anomaly!")
-    
-    # Chart with explanation
-    st.markdown("---")
-    st.markdown("### 📈 Vote Distribution Chart")
-    
-    # CLEAR EXPLANATION
-    st.markdown("""
-    <div class='explain-box'>
-        <h4 style='margin-top: 0;'>📖 How to Read This Chart:</h4>
-        <p><b>X-axis (horizontal):</b> Number of detectors that flagged the sample</p>
-        <ul>
-            <li><b>0 votes</b> = All detectors say "Normal" → Safe water</li>
-            <li><b>1 vote</b> = Only 1 detector flagged it → Probably OK (minority)</li>
-            <li><b>2 votes</b> = 2 detectors agree → <span style='color: #fbbf24;'><b>ANOMALY</b></span> (majority voting kicks in)</li>
-            <li><b>3 votes</b> = 3 detectors agree → <span style='color: #f97316;'><b>Strong anomaly signal</b></span></li>
-            <li><b>4 votes</b> = ALL detectors agree → <span style='color: #ef4444;'><b>CRITICAL! Definite contamination</b></span></li>
-        </ul>
-        <p><b>Y-axis (vertical):</b> How many samples got that number of votes</p>
-        <p><b>Example:</b> If bar at "0" shows "44", it means 44 samples had 0 detectors flag them (all normal)</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Create clear chart
-    vote_counts = pd.Series(votes).value_counts().sort_index()
-    
-    colors = ['#10b981', '#fbbf24', '#f97316', '#dc3545', '#7f1d1d']
-    
-    fig = go.Figure(data=[
-        go.Bar(
-            x=[f"{v} votes" for v in vote_counts.index],
-            y=vote_counts.values,
-            marker_color=[colors[i] if i < len(colors) else colors[-1] for i in vote_counts.index],
-            text=vote_counts.values,
-            textposition='auto',
-            textfont=dict(size=14, color='white', family='Inter'),
-            hovertemplate='<b>%{x}</b><br>Count: %{y} samples<extra></extra>'
-        )
-    ])
-    
-    fig.update_layout(
-        title={
-            'text': "How Many Detectors Flagged Each Sample?",
-            'font': {'size': 20, 'color': '#00d4ff'}
-        },
-        xaxis_title="Number of Detectors Flagging Sample",
-        yaxis_title="Number of Samples",
-        height=450,
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white', family='Inter'),
-        xaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
-        yaxis=dict(gridcolor='rgba(255,255,255,0.1)')
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Interpretation
-    if anomaly_count > 0:
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("🟢 Normal (0–1 votes)", int((pred == 0).sum()), f"{(pred == 0).mean():.1%}", delta_color="off")
+    c2.metric("🔴 Anomalies (≥ 2 votes)", int(pred.sum()), f"{pred.mean():.1%}", delta_color="off")
+    c3.metric("⚠️ Strong (3 votes)", int((votes == 3).sum()), f"{(votes == 3).mean():.1%}", delta_color="off")
+    c4.metric("🚨 Unanimous (4 votes)", int((votes == 4).sum()), f"{(votes == 4).mean():.1%}", delta_color="off")
+
+    left, right = st.columns(2)
+    with left:
+        st.markdown("### 📈 How many detectors flagged each sample?")
+        counts = [int((votes == k).sum()) for k in range(5)]
+        colors = ['#2ECC71', '#E9B949', '#E67E22', '#E74C3C', '#7f1d1d']
+        fig = go.Figure(go.Bar(x=[f"{k} votes" for k in range(5)], y=counts, marker_color=colors,
+                               text=counts, textposition='outside'))
+        fig.add_vline(x=1.5, line_dash='dash', line_color='white',
+                      annotation_text='quorum: anomaly from here →', annotation_position='top right')
+        fig.update_layout(height=380, xaxis_title="Detectors that flagged the sample", yaxis_title="Samples",
+                          plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='white'),
+                          yaxis=dict(gridcolor='rgba(255,255,255,0.1)'), margin=dict(t=40))
+        st.plotly_chart(fig, **E.FULL)
+        st.caption("Bars right of the dashed line are anomalies. Most samples should sit at 0 votes.")
+    with right:
+        st.markdown("### 🔎 Flags by each detector")
+        per = [int(res[d].sum()) for d in DETECTORS]
+        fig2 = go.Figure(go.Bar(x=per, y=DETECTORS, orientation='h', marker_color='#1C7293',
+                                text=[f"{p} ({p / n:.0%})" for p in per], textposition='outside'))
+        fig2.update_layout(height=380, xaxis_title="Samples flagged", plot_bgcolor='rgba(0,0,0,0)',
+                           paper_bgcolor='rgba(0,0,0,0)', font=dict(color='white'),
+                           xaxis=dict(gridcolor='rgba(255,255,255,0.1)', range=[0, max(per + [1]) * 1.35]),
+                           margin=dict(t=40))
+        st.plotly_chart(fig2, **E.FULL)
+        st.caption("Each detector alone flags roughly 5% of normal data, by design.")
+
+    if pred.sum() > 0:
         st.markdown(f"""
         <div class='alert-medium'>
-            <h4>⚠️ Interpretation:</h4>
-            <p>Found <b>{anomaly_count} anomalies</b> out of {len(predictions)} samples ({anomaly_count/len(predictions)*100:.1f}%)</p>
-            <p>This means {anomaly_count} samples showed unusual patterns that could indicate contamination.</p>
-            <p><b>Recommendation:</b> {'Immediate investigation required!' if critical > 0 else 'Review flagged samples for potential issues.'}</p>
-        </div>
-        """, unsafe_allow_html=True)
+            <h4>⚠️ Interpretation</h4>
+            <p><b>{int(pred.sum())} of {n}</b> samples ({pred.mean():.1%}) were flagged by at least 2 detectors.
+            These samples look unlike the normal training data. Check them first.
+            This is a screening signal, not a confirmed contamination.</p>
+        </div>""", unsafe_allow_html=True)
     else:
         st.markdown("""
         <div class='alert-normal'>
-            <h4>✅ All Clear!</h4>
-            <p>No anomalies detected. All water samples appear normal.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Detailed table
-    if anomaly_count > 0:
-        st.markdown("---")
-        st.markdown("### 📋 Detected Anomalies (Detailed View)")
-        
-        anomaly_indices = np.where(predictions == 1)[0]
-        anomaly_df = df.iloc[anomaly_indices].copy()
-        anomaly_df.insert(0, 'Sample #', anomaly_indices + 1)
-        anomaly_df['Votes'] = votes[anomaly_indices]
-        anomaly_df['Severity'] = ['🚨 CRITICAL' if v == 4 else '⚠️ High' if v == 3 else '🟡 Medium'
-                                  for v in votes[anomaly_indices]]
-        
-        def color_by_votes(row):
-            v = row['Votes']
-            if v == 4:
-                return ['background: rgba(127, 29, 29, 0.5)'] * len(row)
-            elif v == 3:
-                return ['background: rgba(220, 38, 38, 0.4)'] * len(row)
-            else:
-                return ['background: rgba(249, 115, 22, 0.3)'] * len(row)
-        
-        st.dataframe(
-            anomaly_df.style.apply(color_by_votes, axis=1),
-            use_container_width=True,
-            height=400
-        )
-        
-        # Download
-        csv = anomaly_df.to_csv(index=False)
-        st.download_button(
-            "📥 Download Anomalies CSV",
-            data=csv,
-            file_name="detected_anomalies.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
+            <h4>✅ All clear</h4>
+            <p>No sample reached the 2-of-4 quorum. All samples look consistent with normal water.</p>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("### 📋 All Samples")
+    table = pd.DataFrame({'Sample #': np.arange(1, n + 1)})
+    for d in DETECTORS:
+        table[d] = np.where(res[d].values == 1, '🚩', '·')
+    table['Votes'] = votes
+    table['Result'] = np.where(pred == 1, '🔴 ANOMALY', '🟢 normal')
+    table['Alert Level'] = [E.LEVEL_NAMES[v] for v in res['an_level']]
+    table = pd.concat([table, df[E.FEATURES].reset_index(drop=True).round(2)], axis=1)
+
+    only = st.checkbox("Show only anomalies (≥ 2 votes)", value=False)
+    view = table[table['Votes'] >= 2] if only else table
+
+    def color_by_votes(row):
+        v = row['Votes']
+        c = ('rgba(127, 29, 29, 0.5)' if v == 4 else 'rgba(231, 76, 60, 0.4)' if v == 3
+             else 'rgba(230, 126, 34, 0.3)' if v == 2 else 'rgba(0,0,0,0)')
+        return [f'background: {c}'] * len(row)
+
+    st.dataframe(view.style.apply(color_by_votes, axis=1).format(precision=2, na_rep='missing'),
+                 height=420, hide_index=True, **E.FULL)
+    st.caption("🚩 = that detector flagged the sample. Votes = number of 🚩. ≥ 2 votes = anomaly.")
+    st.download_button("📥 Download Results CSV", data=table.to_csv(index=False),
+                       file_name="anomaly_results.csv", mime="text/csv", **E.FULL)
 
 
-def show_demo_with_explanation():
-    """Show demo with clear explanation"""
-    
-    st.markdown("### 📊 Demo: How Anomaly Detection Works")
-    
+def show_illustration():
+    st.markdown("### 📊 Illustration: How Anomaly Detection Works")
     st.markdown("""
     <div class='info-box'>
-        <p>👆 <b>Upload a CSV file above to detect real anomalies!</b></p>
-        <p>Below is a visualization showing how the system separates normal samples (blue) from anomalies (red)</p>
+        <p>👆 <b>Upload a CSV file above to run the real detectors on your data.</b></p>
+        <p>Below is a simplified 2-D picture of the idea (illustration only, not real data).</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Generate demo data
-    np.random.seed(42)
-    
-    # Normal cluster (tight group)
-    normal_x = np.random.randn(150) * 0.5
-    normal_y = np.random.randn(150) * 0.5
-    
-    # Anomalies (scattered outside)
-    anomaly_x = np.concatenate([
-        np.random.randn(8) * 0.3 + 2.5,
-        np.random.randn(7) * 0.3 - 2.5
-    ])
-    anomaly_y = np.concatenate([
-        np.random.randn(8) * 0.3 + 2.5,
-        np.random.randn(7) * 0.3 - 2.5
-    ])
-    
+
+    rng = np.random.default_rng(42)
+    nx, ny = rng.normal(0, 0.5, 150), rng.normal(0, 0.5, 150)
+    ax = np.concatenate([rng.normal(2.5, 0.3, 8), rng.normal(-2.5, 0.3, 7)])
+    ay = np.concatenate([rng.normal(2.5, 0.3, 8), rng.normal(-2.5, 0.3, 7)])
     fig = go.Figure()
-    
-    # Normal samples
-    fig.add_trace(go.Scatter(
-        x=normal_x,
-        y=normal_y,
-        mode='markers',
-        name='Normal Water Samples',
-        marker=dict(
-            color='#10b981',
-            size=10,
-            line=dict(width=1, color='white'),
-            opacity=0.7
-        ),
-        hovertemplate='Normal sample<br>X: %{x:.2f}<br>Y: %{y:.2f}<extra></extra>'
-    ))
-    
-    # Anomaly samples
-    fig.add_trace(go.Scatter(
-        x=anomaly_x,
-        y=anomaly_y,
-        mode='markers',
-        name='Anomalies (Contamination)',
-        marker=dict(
-            color='#ef4444',
-            size=15,
-            symbol='x',
-            line=dict(width=2, color='white')
-        ),
-        hovertemplate='<b>ANOMALY</b><br>X: %{x:.2f}<br>Y: %{y:.2f}<extra></extra>'
-    ))
-    
-    fig.update_layout(
-        title={
-            'text': "Anomaly Detection Visualization (Simplified 2D View)",
-            'font': {'size': 18, 'color': '#00d4ff'}
-        },
-        xaxis_title="Water Quality Feature 1 (e.g., pH deviation)",
-        yaxis_title="Water Quality Feature 2 (e.g., Hardness deviation)",
-        height=500,
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white'),
-        xaxis=dict(gridcolor='rgba(255,255,255,0.1)', zeroline=False),
-        yaxis=dict(gridcolor='rgba(255,255,255,0.1)', zeroline=False)
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown("""
-    <div class='explain-box'>
-        <h4>💡 What You're Seeing:</h4>
-        <ul>
-            <li><b>Green dots (cluster in center):</b> Normal water samples with similar quality parameters</li>
-            <li><b>Red X marks (scattered outside):</b> Anomalous samples that deviate from normal patterns</li>
-            <li>Anomalies are "isolated" from the main cluster - this is what detectors look for!</li>
-        </ul>
-        <p><b>In reality:</b> We analyze 9 dimensions (parameters), not just 2, making detection more powerful!</p>
-    </div>
-    """, unsafe_allow_html=True)
+    fig.add_trace(go.Scatter(x=nx, y=ny, mode='markers', name='Normal samples',
+                             marker=dict(color='#2ECC71', size=9, opacity=0.75)))
+    fig.add_trace(go.Scatter(x=ax, y=ay, mode='markers', name='Anomalies',
+                             marker=dict(color='#E74C3C', size=14, symbol='x')))
+    fig.update_layout(title={'text': "Simplified 2-D view (illustration)", 'font': {'size': 18, 'color': '#E8871E'}},
+                      xaxis_title="Parameter 1", yaxis_title="Parameter 2", height=460,
+                      plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='white'),
+                      xaxis=dict(gridcolor='rgba(255,255,255,0.1)', zeroline=False),
+                      yaxis=dict(gridcolor='rgba(255,255,255,0.1)', zeroline=False))
+    st.plotly_chart(fig, **E.FULL)
+    st.caption("Green = the dense normal cluster. Red = isolated points far from it. "
+               "The real system does this in all 9 dimensions at once.")
 
 
 if __name__ == "__main__":

@@ -1,373 +1,225 @@
 """
-Classification Page - WORKING with clear results
+Classification Page - real weighted soft-voting ensemble (RF 0.35 + XGBoost 0.40 + SVM 0.25)
 """
 
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib
-from pathlib import Path
+import plotly.graph_objects as go
+
+from . import engine as E
+
 
 def show():
-    """Display classification page"""
-    
     st.markdown("## 🔍 Water Quality Classification")
-    
-    # Clear explanation
+
     st.markdown("""
     <div class='info-box'>
         <h3 style='margin-top: 0;'>🎯 What This Does</h3>
-        <p>Classifies water samples as <b>POTABLE (Safe to drink)</b> or <b>NOT POTABLE (Unsafe)</b> using AI</p>
+        <p>Classifies water samples as <b>POTABLE (safe)</b> or <b>NOT POTABLE (unsafe)</b> using the trained
+        weighted soft-voting ensemble.</p>
         <ul>
-            <li><b>Model:</b> Random Forest (72.5% accuracy)</li>
-            <li><b>Input:</b> 9 water quality parameters</li>
-            <li><b>Output:</b> Potability + 4-level alert (NORMAL/LOW/MEDIUM/CRITICAL)</li>
-            <li><b>Processing:</b> <100ms per sample</li>
+            <li><b>Model:</b> Random Forest (0.35) + XGBoost (0.40) + SVM (0.25). Each model gives a probability of
+            "potable"; the weighted average is the ensemble probability. 0.5 or more = POTABLE.</li>
+            <li><b>Published performance:</b> 61.75% accuracy · 66.62% ROC-AUC · 53.02% F1 (570 test samples)</li>
+            <li><b>Input:</b> the 9 parameters of the Kaggle Water Potability dataset</li>
+            <li><b>Output:</b> potability, confidence, and the classification alert level</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
-    
+
+    if not E.show_missing(['rf', 'xgb', 'svm', 'scaler'], "classification"):
+        return
+
     st.markdown("---")
-    
-    # Tabs for input methods
     tab1, tab2 = st.tabs(["📝 Manual Entry", "📁 Upload CSV File"])
-    
     with tab1:
         show_manual_input()
-    
     with tab2:
         show_csv_upload()
 
 
+# --------------------------------------------------------------------------
 def show_manual_input():
-    """Manual sample entry"""
-    
     st.markdown("### Enter Water Quality Parameters")
-    st.info("💡 Enter values for all 9 parameters. Use typical safe ranges shown as defaults.")
-    
+    st.info("💡 Defaults are typical values from the dataset. Change any value and click Classify.")
+
     col1, col2, col3 = st.columns(3)
-    
     with col1:
-        ph = st.number_input("💧 pH", 0.0, 14.0, 7.0, 0.1,
-                            help="Safe: 6.5-8.5")
-        hardness = st.number_input("🏔️ Hardness (mg/L)", 0.0, 500.0, 200.0, 10.0,
-                                  help="Safe: <300")
-        solids = st.number_input("🌊 Solids (ppm)", 0.0, 50000.0, 20000.0, 100.0,
-                                help="Safe: 15000-25000")
-    
+        ph = st.number_input("💧 pH", 0.0, 14.0, 7.0, 0.1)
+        hardness = st.number_input("🏔️ Hardness (mg/L)", 0.0, 500.0, 196.0, 1.0)
+        solids = st.number_input("🌊 Solids (ppm)", 0.0, 70000.0, 22000.0, 100.0)
     with col2:
-        chloramines = st.number_input("🧪 Chloramines (ppm)", 0.0, 15.0, 7.0, 0.1,
-                                     help="Safe: 4-10")
-        sulfate = st.number_input("⚗️ Sulfate (mg/L)", 0.0, 600.0, 350.0, 10.0,
-                                 help="Safe: 200-500")
-        conductivity = st.number_input("⚡ Conductivity (μS/cm)", 0.0, 1000.0, 550.0, 10.0,
-                                      help="Safe: 400-800")
-    
+        chloramines = st.number_input("🧪 Chloramines (ppm)", 0.0, 15.0, 7.1, 0.1)
+        sulfate = st.number_input("⚗️ Sulfate (mg/L)", 0.0, 600.0, 333.0, 1.0)
+        conductivity = st.number_input("⚡ Conductivity (μS/cm)", 0.0, 1000.0, 426.0, 1.0)
     with col3:
-        organic_carbon = st.number_input("🍃 Organic Carbon (ppm)", 0.0, 30.0, 12.0, 0.5,
-                                        help="Safe: 2-20")
-        trihalomethanes = st.number_input("🔬 Trihalomethanes (μg/L)", 0.0, 120.0, 65.0, 1.0,
-                                         help="Safe: <80")
-        turbidity = st.number_input("🌫️ Turbidity (NTU)", 0.0, 10.0, 3.0, 0.1,
-                                   help="Safe: <5")
-    
-    if st.button("🔍 Classify Water Sample", type="primary", use_container_width=True):
-        sample = np.array([[ph, hardness, solids, chloramines, sulfate,
-                           conductivity, organic_carbon, trihalomethanes, turbidity]])
-        
-        with st.spinner("Analyzing water sample..."):
-            result = predict_sample(sample)
-        
-        if result:
-            display_single_result(result, sample[0])
+        organic_carbon = st.number_input("🍃 Organic Carbon (ppm)", 0.0, 30.0, 14.3, 0.1)
+        trihalomethanes = st.number_input("🔬 Trihalomethanes (μg/L)", 0.0, 130.0, 66.4, 0.1)
+        turbidity = st.number_input("🌫️ Turbidity (NTU)", 0.0, 10.0, 4.0, 0.1)
+
+    if st.button("🔍 Classify Water Sample", type="primary", **E.FULL):
+        df = pd.DataFrame([[ph, hardness, solids, chloramines, sulfate, conductivity,
+                            organic_carbon, trihalomethanes, turbidity]], columns=E.FEATURES)
+        with st.spinner("Running the ensemble..."):
+            res = E.classify(df).iloc[0]
+        display_single_result(res, df.iloc[0])
 
 
-def show_csv_upload():
-    """CSV file upload"""
-    
-    st.markdown("### Upload Multiple Water Samples")
-    st.info("💡 CSV must have columns: ph, Hardness, Solids, Chloramines, Sulfate, Conductivity, Organic_carbon, Trihalomethanes, Turbidity")
-    
-    uploaded_file = st.file_uploader(
-        "Choose CSV file",
-        type=['csv'],
-        help="Upload CSV with water quality measurements"
-    )
-    
-    if uploaded_file:
-        try:
-            df = pd.read_csv(uploaded_file)
-            st.success(f"✅ Loaded {len(df)} samples successfully!")
-            
-            with st.expander("📋 View Your Data (First 10 Rows)"):
-                st.dataframe(df.head(10), use_container_width=True)
-            
-            # Required columns
-            required = ['ph', 'Hardness', 'Solids', 'Chloramines', 'Sulfate',
-                       'Conductivity', 'Organic_carbon', 'Trihalomethanes', 'Turbidity']
-            
-            missing = [col for col in required if col not in df.columns]
-            
-            if missing:
-                st.error(f"❌ Missing columns: {', '.join(missing)}")
-                st.info("Required columns: " + ", ".join(required))
-                return
-            
-            if st.button("🔍 Classify All Samples", type="primary", use_container_width=True):
-                with st.spinner(f"Analyzing {len(df)} samples..."):
-                    results = predict_batch(df[required].values)
-                
-                if results:
-                    display_batch_results(results, df)
-        
-        except Exception as e:
-            st.error(f"❌ Error: {str(e)}")
+def display_single_result(res, sample):
+    level = E.LEVEL_NAMES[int(res['cls_level'])]
+    potable = int(res['prediction']) == 1
+    css = {'NORMAL': 'alert-normal', 'LOW': 'alert-low', 'MEDIUM': 'alert-medium', 'CRITICAL': 'alert-critical'}[level]
+    status = "POTABLE" if potable else "NOT POTABLE"
+    msg = {
+        'NORMAL': "The ensemble considers this sample safe.",
+        'LOW': "The ensemble leans towards unsafe, but with low confidence (50–70%). Monitor.",
+        'MEDIUM': "The ensemble is fairly confident (70–90%) the sample is unsafe. Investigate.",
+        'CRITICAL': "The ensemble is very confident (90%+) the sample is unsafe. Act now.",
+    }[level]
 
-
-def load_model():
-    """Load trained model"""
-    try:
-        model_path = Path(__file__).parent.parent.parent / 'models' / 'classification' / 'random_forest.pkl'
-        scaler_path = Path(__file__).parent.parent.parent / 'data' / 'processed' / 'scaler.pkl'
-        
-        if model_path.exists():
-            model = joblib.load(model_path)
-            scaler = joblib.load(scaler_path) if scaler_path.exists() else None
-            return model, scaler
-        else:
-            return None, None
-    except:
-        return None, None
-
-
-def predict_sample(sample):
-    """Predict single sample"""
-    try:
-        model, scaler = load_model()
-        
-        if model is None:
-            # Demo mode
-            ph = sample[0][0]
-            if ph < 6.5 or ph > 8.5:
-                prediction = 0
-                prob = [0.7, 0.3]
-                level = "CRITICAL" if (ph < 5 or ph > 9) else "MEDIUM"
-            else:
-                prediction = 1
-                prob = [0.3, 0.7]
-                level = "NORMAL" if (6.8 <= ph <= 8.2) else "LOW"
-        else:
-            # Real model
-            if scaler:
-                sample_scaled = scaler.transform(sample)
-            else:
-                sample_scaled = sample
-            
-            prediction = model.predict(sample_scaled)[0]
-            prob = model.predict_proba(sample_scaled)[0]
-            
-            ph = sample[0][0]
-            if prediction == 0:
-                level = "CRITICAL" if (ph < 5 or ph > 9) else "MEDIUM"
-            else:
-                level = "NORMAL" if (6.8 <= ph <= 8.2) else "LOW"
-        
-        return {
-            'prediction': prediction,
-            'probabilities': prob,
-            'confidence': max(prob),
-            'level': level
-        }
-    
-    except Exception as e:
-        st.error(f"Prediction error: {e}")
-        return None
-
-
-def predict_batch(samples):
-    """Predict batch"""
-    results = []
-    model, scaler = load_model()
-    
-    for sample in samples:
-        sample_2d = sample.reshape(1, -1)
-        
-        if model is None:
-            ph = sample[0]
-            if ph < 6.5 or ph > 8.5:
-                prediction = 0
-                prob = [0.7, 0.3]
-                level = "CRITICAL" if (ph < 5 or ph > 9) else "MEDIUM"
-            else:
-                prediction = 1
-                prob = [0.3, 0.7]
-                level = "NORMAL" if (6.8 <= ph <= 8.2) else "LOW"
-        else:
-            if scaler:
-                sample_scaled = scaler.transform(sample_2d)
-            else:
-                sample_scaled = sample_2d
-            
-            prediction = model.predict(sample_scaled)[0]
-            prob = model.predict_proba(sample_scaled)[0]
-            
-            ph = sample[0]
-            if prediction == 0:
-                level = "CRITICAL" if (ph < 5 or ph > 9) else "MEDIUM"
-            else:
-                level = "NORMAL" if (6.8 <= ph <= 8.2) else "LOW"
-        
-        results.append({
-            'prediction': prediction,
-            'probabilities': prob,
-            'level': level,
-            'confidence': max(prob)
-        })
-    
-    return results
-
-
-def display_single_result(result, sample):
-    """Display single result"""
-    
-    level = result['level']
-    prediction = result['prediction']
-    confidence = result['confidence']
-    
-    if level == "NORMAL":
-        alert_class = "alert-normal"
-        emoji = "🟢"
-        status = "POTABLE - Safe to Drink"
-        message = "Water quality is within safe parameters. No action needed."
-    elif level == "LOW":
-        alert_class = "alert-low"
-        emoji = "🟡"
-        status = "POTABLE - Minor Concerns"
-        message = "Water is potable but some parameters slightly off. Monitor closely."
-    elif level == "MEDIUM":
-        alert_class = "alert-medium"
-        emoji = "🟠"
-        status = "NOT POTABLE - Do Not Consume"
-        message = "Significant water quality issues detected. Treatment required."
-    else:
-        alert_class = "alert-critical"
-        emoji = "🔴"
-        status = "NOT POTABLE - Critical Contamination"
-        message = "Severe contamination detected. Immediate action required!"
-    
     st.markdown(f"""
-    <div class='{alert_class}'>
-        <h2 style='margin: 0;'>{emoji} {status}</h2>
-        <p style='font-size: 1.2rem; margin: 1rem 0;'>{message}</p>
-        <p style='margin: 0;'><b>Confidence:</b> {confidence:.1%}</p>
+    <div class='{css}'>
+        <h2 style='margin: 0;'>{E.LEVEL_EMOJI[level]} {status} · Classification alert: {level}</h2>
+        <p style='font-size: 1.15rem; margin: 0.8rem 0;'>{msg}</p>
+        <p style='margin: 0;'><b>Ensemble probability of potable:</b> {res['p_potable']:.1%}
+        &nbsp;·&nbsp; <b>Confidence:</b> {res['confidence']:.1%}</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Details
-    col1, col2 = st.columns(2)
-    
+
+    col1, col2 = st.columns([3, 2])
     with col1:
-        st.markdown("### 📊 Prediction Details")
-        potable_prob = result['probabilities'][1]
-        non_potable_prob = result['probabilities'][0]
-        
-        st.metric("✅ Potable Probability", f"{potable_prob:.1%}")
-        st.metric("❌ Not Potable Probability", f"{non_potable_prob:.1%}")
-    
+        st.markdown("### 📊 What each model says")
+        names = ['Random Forest (0.35)', 'XGBoost (0.40)', 'SVM (0.25)', 'Ensemble']
+        vals = [res['p_random_forest'], res['p_xgboost'], res['p_svm'], res['p_potable']]
+        colors = ['#1C7293', '#1C7293', '#1C7293', '#E8871E']
+        fig = go.Figure(go.Bar(x=vals, y=names, orientation='h', marker_color=colors,
+                               text=[f"{v:.1%}" for v in vals], textposition='outside'))
+        fig.add_vline(x=0.5, line_dash='dash', line_color='white',
+                      annotation_text='0.5 decision line', annotation_position='top')
+        fig.update_layout(xaxis=dict(range=[0, 1], title='Probability of POTABLE', tickformat='.0%',
+                                     gridcolor='rgba(255,255,255,0.1)'),
+                          height=300, margin=dict(l=10, r=40, t=30, b=40),
+                          plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='white'))
+        st.plotly_chart(fig, **E.FULL)
+        st.caption("Bars right of the dashed line vote POTABLE; left of it vote NOT POTABLE.")
     with col2:
-        st.markdown("### ⚠️ Risk Factors")
-        ph = sample[0]
-        
-        if ph < 6.5:
-            st.warning(f"❌ pH too low ({ph:.2f}) - Acidic water can corrode pipes")
-        elif ph > 8.5:
-            st.warning(f"❌ pH too high ({ph:.2f}) - Alkaline water, unpleasant taste")
-        else:
-            st.success(f"✅ pH in safe range ({ph:.2f})")
-        
-        if sample[1] > 300:
-            st.warning(f"❌ High hardness ({sample[1]:.0f}) - Scaling issues")
-        else:
-            st.success(f"✅ Hardness OK ({sample[1]:.0f} mg/L)")
-    
-    # Parameters table
-    with st.expander("📋 Detailed Parameters"):
+        st.markdown("### 🚦 How the alert level is set")
+        st.markdown("""
+        - Potable → **NORMAL**
+        - Not potable, confidence 50–70% → **LOW**
+        - Not potable, confidence 70–90% → **MEDIUM**
+        - Not potable, confidence ≥ 90% → **CRITICAL**
+
+        The final alert combines this with anomaly detection (see **Alert History**).
+        """)
+
+    with st.expander("📋 Entered parameters with WHO reference values"):
         params_df = pd.DataFrame({
             'Parameter': ['pH', 'Hardness', 'Solids', 'Chloramines', 'Sulfate',
-                         'Conductivity', 'Organic Carbon', 'Trihalomethanes', 'Turbidity'],
-            'Value': sample,
+                          'Conductivity', 'Organic Carbon', 'Trihalomethanes', 'Turbidity'],
+            'Value': sample.values,
             'Unit': ['', 'mg/L', 'ppm', 'ppm', 'mg/L', 'μS/cm', 'ppm', 'μg/L', 'NTU'],
-            'Safe Range': ['6.5-8.5', '<300', '15k-25k', '4-10', '200-500', '400-800', '2-20', '<80', '<5']
+            'WHO Reference': ['6.5-8.5', '<500', '<500', '<4', '<250', '<400', '<2', '<80', '<5'],
         })
-        st.dataframe(params_df, use_container_width=True)
+        st.dataframe(params_df, hide_index=True, **E.FULL)
+        st.caption("WHO limits are shown for context only. The model learns from the dataset's labels, "
+                   "which do not follow these limits (e.g. Solids in this dataset are typically ~22,000 ppm).")
 
 
-def display_batch_results(results, df):
-    """Display batch results"""
-    
+# --------------------------------------------------------------------------
+def show_csv_upload():
+    st.markdown("### Upload Multiple Water Samples")
+    st.info("💡 The CSV needs these 9 columns (extra columns are ignored): " + ", ".join(E.FEATURES))
+
+    uploaded = st.file_uploader("Choose CSV file", type=['csv'], key='cls_upload')
+    if not uploaded:
+        st.session_state.pop('cls_results', None)
+        return
+
+    try:
+        df = E.read_csv(uploaded)
+    except Exception as e:
+        st.error(f"❌ Could not read the file: {e}")
+        return
+
+    ok, msg = E.check_water_columns(df)
+    if not ok:
+        st.error("❌ " + msg)
+        if any(c in df.columns for c in E.FORECAST_FEATURES):
+            st.info("This looks like a forecasting file. Upload it on the **📈 pH Forecasting** page instead.")
+        return
+
+    st.success(f"✅ Loaded {len(df)} samples.")
+    n_missing = int(df[E.FEATURES].isna().sum().sum())
+    if n_missing:
+        st.warning(f"⚠️ {n_missing} empty cells found. They will be filled with KNN imputation (k = 5), "
+                   "the same method used in training.")
+    with st.expander("📋 View your data (first 10 rows)"):
+        st.dataframe(df.head(10), **E.FULL)
+
+    key = (uploaded.name, uploaded.size)
+    if st.button("🔍 Classify All Samples", type="primary", **E.FULL):
+        with st.spinner(f"Running the ensemble on {len(df)} samples..."):
+            st.session_state['cls_results'] = (key, E.classify(df))
+
+    stored = st.session_state.get('cls_results')
+    if stored and stored[0] == key:
+        display_batch_results(stored[1], df)
+
+
+def display_batch_results(res, df):
     st.markdown("---")
     st.markdown("## 📊 Batch Analysis Results")
-    
-    # Summary
-    level_counts = {}
-    for r in results:
-        level = r['level']
-        level_counts[level] = level_counts.get(level, 0) + 1
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        count = level_counts.get('NORMAL', 0)
-        st.metric("🟢 NORMAL", count, f"{count/len(results)*100:.1f}%")
-    
-    with col2:
-        count = level_counts.get('LOW', 0)
-        st.metric("🟡 LOW", count, f"{count/len(results)*100:.1f}%")
-    
-    with col3:
-        count = level_counts.get('MEDIUM', 0)
-        st.metric("🟠 MEDIUM", count, f"{count/len(results)*100:.1f}%")
-    
-    with col4:
-        count = level_counts.get('CRITICAL', 0)
-        st.metric("🔴 CRITICAL", count, f"{count/len(results)*100:.1f}%")
-    
-    # Results table
+
+    n = len(res)
+    n_pot = int(res['prediction'].sum())
+    c1, c2, c3 = st.columns(3)
+    c1.metric("✅ Potable", n_pot, f"{n_pot / n:.0%} of samples", delta_color="off")
+    c2.metric("❌ Not potable", n - n_pot, f"{(n - n_pot) / n:.0%} of samples", delta_color="off")
+    c3.metric("Average P(potable)", f"{res['p_potable'].mean():.1%}")
+
+    levels = [E.LEVEL_NAMES[v] for v in res['cls_level']]
+    st.markdown("#### Classification alert levels")
+    cols = st.columns(4)
+    for col, name in zip(cols, E.LEVEL_NAMES):
+        k = levels.count(name)
+        col.metric(f"{E.LEVEL_EMOJI[name]} {name}", k, f"{k / n:.0%}", delta_color="off")
+
     st.markdown("### 📋 Detailed Results")
-    
-    results_df = pd.DataFrame({
-        'Sample': [f"Sample {i+1}" for i in range(len(results))],
-        'Result': ["✅ POTABLE" if r['prediction'] == 1 else "❌ NOT POTABLE" for r in results],
-        'Alert Level': [r['level'] for r in results],
-        'Confidence': [f"{r['confidence']:.1%}" for r in results]
+    table = pd.DataFrame({
+        'Sample': [f"Sample {i + 1}" for i in range(n)],
+        'pH': df['ph'].round(2).values,
+        'Result': ["✅ POTABLE" if p == 1 else "❌ NOT POTABLE" for p in res['prediction']],
+        'P(potable) ensemble': res['p_potable'].round(3).values,
+        'RF': res['p_random_forest'].round(3).values,
+        'XGBoost': res['p_xgboost'].round(3).values,
+        'SVM': res['p_svm'].round(3).values,
+        'Confidence': [f"{c:.1%}" for c in res['confidence']],
+        'Alert Level': levels,
     })
-    
+
+    # If the file carries the dataset's real label, show how many the model got right.
+    if 'Potability' in df.columns and df['Potability'].isin([0, 1]).all():
+        truth = df['Potability'].astype(int).values
+        table['True label'] = ["POTABLE" if t == 1 else "NOT POTABLE" for t in truth]
+        acc = float((truth == res['prediction'].values).mean())
+        st.info(f"🎯 This file has the true 'Potability' label: the ensemble is correct on "
+                f"{acc:.1%} of these {n} samples (published test accuracy: 61.75%).")
+
     def color_rows(row):
-        level = row['Alert Level']
-        if level == 'CRITICAL':
-            return ['background: rgba(239, 68, 68, 0.3)'] * len(row)
-        elif level == 'MEDIUM':
-            return ['background: rgba(249, 115, 22, 0.3)'] * len(row)
-        elif level == 'LOW':
-            return ['background: rgba(251, 191, 36, 0.3)'] * len(row)
-        else:
-            return ['background: rgba(16, 185, 129, 0.3)'] * len(row)
-    
-    st.dataframe(
-        results_df.style.apply(color_rows, axis=1),
-        use_container_width=True,
-        height=400
-    )
-    
-    # Download
-    csv = results_df.to_csv(index=False)
-    st.download_button(
-        "📥 Download Results",
-        data=csv,
-        file_name="classification_results.csv",
-        mime="text/csv",
-        use_container_width=True
-    )
+        c = {'CRITICAL': 'rgba(231, 76, 60, 0.3)', 'MEDIUM': 'rgba(230, 126, 34, 0.3)',
+             'LOW': 'rgba(233, 185, 73, 0.3)', 'NORMAL': 'rgba(46, 204, 113, 0.18)'}[row['Alert Level']]
+        return [f'background: {c}'] * len(row)
+
+    fmt = {'pH': '{:.2f}', 'P(potable) ensemble': '{:.3f}', 'RF': '{:.3f}', 'XGBoost': '{:.3f}', 'SVM': '{:.3f}'}
+    st.dataframe(table.style.apply(color_rows, axis=1).format(fmt, na_rep='missing'),
+                 height=420, hide_index=True, **E.FULL)
+    st.caption("P(potable) is the probability of SAFE water. Below 0.5 → NOT POTABLE. "
+               "RF / XGBoost / SVM columns show each model's own probability before weighting.")
+
+    st.download_button("📥 Download Results", data=table.to_csv(index=False),
+                       file_name="classification_results.csv", mime="text/csv", **E.FULL)
 
 
 if __name__ == "__main__":

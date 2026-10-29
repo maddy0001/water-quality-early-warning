@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent.parent / 'src'))
 
 from config import METRICS_DIR, RANDOM_SEED, CLASSIFICATION_CONFIG
 from utils.logger import get_logger
@@ -34,13 +35,10 @@ def run_classification_pipeline(save_models: bool = True,
     """
     Full classification pipeline:
     1. Load data
-    2. Preprocess (impute, scale, SMOTE, split)
+    2. Preprocess (impute, scale, SMOTE on train only, split)
     3. Train RF, XGBoost, SVM, Ensemble
     4. Evaluate all models
     5. Save models and metrics
-
-    Returns:
-        Complete results dictionary
     """
     set_random_seeds(RANDOM_SEED)
     pipeline_start = time.time()
@@ -48,9 +46,7 @@ def run_classification_pipeline(save_models: bool = True,
     if verbose:
         logger.section("CLASSIFICATION PIPELINE")
 
-    # -------------------------------------------------------------------------
     # STEP 1: Load Data
-    # -------------------------------------------------------------------------
     if verbose:
         logger.info("\n[1/5] Loading dataset...")
 
@@ -64,9 +60,7 @@ def run_classification_pipeline(save_models: bool = True,
     X, y = loader.get_features_and_target()
     logger.success(f"  Loaded {len(X)} samples, {X.shape[1]} features")
 
-    # -------------------------------------------------------------------------
     # STEP 2: Preprocess
-    # -------------------------------------------------------------------------
     if verbose:
         logger.info("\n[2/5] Preprocessing data...")
 
@@ -86,16 +80,13 @@ def run_classification_pipeline(save_models: bool = True,
 
     logger.success(f"  Train: {len(X_train)}, Test: {len(X_test)}")
 
-    # -------------------------------------------------------------------------
     # STEP 3: Build Models
-    # -------------------------------------------------------------------------
     if verbose:
         logger.info("\n[3/5] Building models...")
 
     rf_model = RandomForestModel()
     svm_model = SVMModel()
 
-    # Try to build XGBoost (optional)
     xgb_model = None
     try:
         from models.classification.xgboost_model import XGBoostModel
@@ -104,36 +95,29 @@ def run_classification_pipeline(save_models: bool = True,
     except ImportError:
         logger.warning("  XGBoost not available (install: pip install xgboost)")
 
-    # -------------------------------------------------------------------------
     # STEP 4: Train all models
-    # -------------------------------------------------------------------------
     if verbose:
         logger.info("\n[4/5] Training models...")
 
     train_results = {}
 
-    # Random Forest
     logger.info("\n  [1/3] Random Forest...")
     t = time.time()
     rf_model.train(X_train, y_train, feature_names=feature_names, verbose=verbose)
     train_results['random_forest'] = {'train_time': time.time() - t}
 
-    # XGBoost (if available)
     if xgb_model:
         logger.info("\n  [2/3] XGBoost...")
         t = time.time()
         xgb_model.train(X_train, y_train, feature_names=feature_names, verbose=verbose)
         train_results['xgboost'] = {'train_time': time.time() - t}
 
-    # SVM
     logger.info("\n  [3/3] SVM...")
     t = time.time()
     svm_model.train(X_train, y_train, feature_names=feature_names, verbose=verbose)
     train_results['svm'] = {'train_time': time.time() - t}
 
-    # -------------------------------------------------------------------------
     # STEP 5: Evaluate all models + Ensemble
-    # -------------------------------------------------------------------------
     if verbose:
         logger.info("\n[5/5] Evaluating all models...")
 
@@ -149,7 +133,6 @@ def run_classification_pipeline(save_models: bool = True,
     svm_metrics = svm_model.evaluate(X_test, y_test, verbose=verbose)
     eval_results['svm'] = svm_metrics
 
-    # Build ensemble
     ensemble = EnsembleModel(
         rf_model=rf_model,
         xgb_model=xgb_model,
@@ -158,20 +141,15 @@ def run_classification_pipeline(save_models: bool = True,
     ensemble_metrics = ensemble.evaluate(X_test, y_test, verbose=verbose)
     eval_results['ensemble'] = ensemble_metrics
 
-    # Print comparison table
     ensemble._print_comparison(eval_results)
 
-    # Feature importance
     rf_importance = rf_model.get_feature_importance()
     if verbose:
         logger.subsection("Top Features (Random Forest)")
         for _, row in rf_importance.head(5).iterrows():
-            bar = "█" * int(row['importance'] * 100)
+            bar = "\u2588" * int(row['importance'] * 100)
             logger.info(f"  {row['feature']:<30} {row['importance']:.4f} {bar}")
 
-    # -------------------------------------------------------------------------
-    # Save models and metrics
-    # -------------------------------------------------------------------------
     if save_models:
         logger.subsection("Saving Models")
         rf_model.save()
@@ -179,7 +157,6 @@ def run_classification_pipeline(save_models: bool = True,
             xgb_model.save()
         svm_model.save()
 
-        # Save serializable metrics (exclude numpy arrays)
         save_metrics = {}
         for model_name, m in eval_results.items():
             save_metrics[model_name] = {
@@ -222,7 +199,7 @@ if __name__ == "__main__":
 
     if results['success']:
         print("\n" + "="*70)
-        print("✓ Classification pipeline complete!")
+        print("\u2713 Classification pipeline complete!")
         print(f"  Total time: {results['total_time']:.1f}s")
         best = max(results['eval_results'],
                    key=lambda k: results['eval_results'][k].get('f1_score', 0))

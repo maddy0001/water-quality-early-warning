@@ -1,5 +1,6 @@
 """
-Forecasting Page - ACTUALLY WORKS with uploaded CSV
+pH Forecasting Page - real trained BiLSTM + Attention model
+(30-day window of 11 USGS sensor readings -> next-day normalised pH)
 """
 
 import streamlit as st
@@ -7,410 +8,218 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 
+from . import engine as E
+
+
 def show():
-    """Display pH forecasting page"""
-    
     st.markdown("## 📈 pH Forecasting & Trend Analysis")
-    
-    # Clear explanation
+
     st.markdown("""
     <div class='info-box'>
         <h3 style='margin-top: 0;'>🎯 What This Does</h3>
-        <p>Predicts future pH values based on historical measurements to provide <b>early warning</b> before contamination occurs.</p>
+        <p>Predicts <b>next-day pH</b> at a monitoring station from the <b>last 30 days</b> of its sensor readings,
+        using the trained <b>BiLSTM + Attention</b> model.</p>
         <ul>
-            <li><b>Model:</b> BiLSTM with Attention mechanism (deep learning)</li>
-            <li><b>Forecast:</b> 24-48 hours ahead</li>
-            <li><b>Safe pH Range:</b> 6.5 - 8.5 (WHO standards)</li>
-            <li><b>Alert if:</b> Forecast shows pH leaving safe range</li>
+            <li><b>Data:</b> USGS monitoring stations, Georgia (37 stations, 11 daily sensor features)</li>
+            <li><b>Input:</b> 30 consecutive days × 11 features (conductance, pH max/min, dissolved oxygen, temperature)</li>
+            <li><b>Output:</b> next-day pH on the dataset's <b>normalised 0–1 scale</b></li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
-    
+
     st.markdown("---")
-    
-    # Model info
     col1, col2 = st.columns(2)
-    
     with col1:
         st.markdown("""
-        ### 🤖 Model Performance
-        **BiLSTM-Attention:**
-        - RMSE: 0.053
-        - MAE: 0.034  
-        - R²: 0.518
-        - MAPE: 19.8%
-        
-        **What this means:**
-        - Predictions typically within ±0.05 pH units
-        - Accurate enough for early warning
+        ### 🤖 Published Performance *(9,324 test sequences)*
+        **BiLSTM + Attention:** RMSE 0.0524 · MAE 0.0336 · R² 0.5251 · MAPE 19.36%
+
+        **GRU baseline:** RMSE 0.0610 · R² 0.3572 → BiLSTM improves RMSE by 14.0% and R² by 47.0%.
+
+        **R² = 0.525** means the model explains about half of the day-to-day change in pH.
         """)
-    
     with col2:
         st.markdown("""
-        ### ⚠️ Alert System
-        **pH Thresholds:**
-        - 🟢 **6.5-8.5**: Safe (Normal)
-        - 🟡 **6.3-6.5 or 8.5-8.7**: Low alert
-        - 🟠 **6.0-6.3 or 8.7-9.0**: Medium alert  
-        - 🔴 **<6.0 or >9.0**: Critical alert
-        
-        **Action if red:** Adjust treatment now!
+        ### 📏 About the scale
+        The USGS dataset is distributed **already normalised to 0–1**, and the paper reports
+        errors on this scale (RMSE 0.0524). The dashboard therefore shows pH on the same 0–1 scale.
+        WHO limits (6.5–8.5) apply to raw pH, so they are not drawn here; sudden jumps are the job of
+        the anomaly module.
         """)
-    
+
     st.markdown("---")
-    
-    # Upload section
-    st.markdown("### 📤 Upload Your Time Series Data")
-    st.info("💡 Upload a CSV with pH measurements over time (hourly or daily). Must have 'ph' column.")
-    
-    uploaded_file = st.file_uploader(
-        "Choose CSV file",
-        type=['csv'],
-        help="CSV should have: timestamp (optional) and pH column"
-    )
-    
-    if uploaded_file:
+    if not E.show_missing(['bilstm', 'f_scaler'], "forecasting"):
+        return
+
+    st.markdown("### 📤 Choose Data")
+    source = st.radio("Data source", ["Use a USGS station from the test set", "Upload my own CSV"],
+                      horizontal=True, label_visibility="collapsed")
+
+    df = None
+    if source.startswith("Use"):
+        stations = load_test_stations()
+        if stations is None:
+            st.error("❌ `data/raw/water_dataset.mat` not found. Upload a CSV instead.")
+            return
+        ids = list(stations.keys())
+        sid = st.selectbox("Station", ids, format_func=lambda s: f"USGS station {s}")
+        days = st.slider("Days to use (test period)", 31, len(stations[sid]), len(stations[sid]))
+        df = stations[sid].iloc[:days].reset_index(drop=True)
+        with st.expander("📏 Check against the paper: run the model on all 37 stations"):
+            st.caption("Runs every 30-day window of the whole test period for all 37 stations "
+                       "(9,324 forecasts), the same test set as the published results.")
+            if st.button("Run on all 37 stations", **E.FULL):
+                with st.spinner("Forecasting 9,324 windows..."):
+                    st.session_state['fc_all'] = evaluate_all(stations)
+            if 'fc_all' in st.session_state:
+                m = st.session_state['fc_all']
+                a, b, c, d = st.columns(4)
+                a.metric("Forecasts", f"{m['n']:,}")
+                b.metric("RMSE", f"{m['rmse']:.4f}", f"paper 0.0524", delta_color="off")
+                c.metric("MAE", f"{m['mae']:.4f}", f"paper 0.0336", delta_color="off")
+                d.metric("R²", f"{m['r2']:.3f}", f"paper 0.5251", delta_color="off")
+    else:
+        st.info("💡 The CSV needs at least 30 rows (one per day, oldest first) and these 11 columns: "
+                + ", ".join(E.FORECAST_FEATURES)
+                + ". An optional **pH_actual** column lets the page compare forecasts with real values.")
+        up = st.file_uploader("Choose CSV file", type=['csv'], key='fc_upload')
+        if not up:
+            return
         try:
-            df = pd.read_csv(uploaded_file)
-            st.success(f"✅ Loaded {len(df)} time steps!")
-            
-            with st.expander("📋 View Your Data"):
-                st.dataframe(df.head(10), use_container_width=True)
-            
-            # Check for pH column
-            if 'ph' in df.columns or 'pH' in df.columns:
-                ph_col = 'ph' if 'ph' in df.columns else 'pH'
-                
-                st.markdown("### 📊 Your pH Trend Analysis")
-                
-                # Actually show the trend!
-                show_actual_trend(df, ph_col)
-                
-                # Add simulated forecast
-                st.markdown("### 🔮 Forecasted pH (Next 24 Hours)")
-                show_forecast(df, ph_col)
-                
-            else:
-                st.warning("⚠️ No 'ph' column found in your CSV. Please ensure your data includes pH measurements.")
-                st.info("Expected format: CSV with 'ph' column containing pH values")
-        
+            df = E.read_csv(up)
         except Exception as e:
-            st.error(f"❌ Error: {str(e)}")
-    
-    else:
-        # Show demo when no file
-        st.markdown("---")
-        show_demo_forecast()
+            st.error(f"❌ Could not read the file: {e}")
+            return
+        ok, msg = E.check_forecast_columns(df)
+        if not ok:
+            st.error("❌ " + msg)
+            if all(c in df.columns for c in E.FEATURES):
+                st.info("This file has the 9 Kaggle water-quality columns. Those samples have no time order "
+                        "and no sensor history, so they go on the **🔍 Classification** or "
+                        "**⚠️ Anomaly Detection** pages. The forecaster needs daily USGS sensor readings.")
+            return
+        st.success(f"✅ Loaded {len(df)} days.")
+        with st.expander("📋 View your data (first 10 rows)"):
+            st.dataframe(df.head(10), **E.FULL)
+
+    with st.spinner("Running the BiLSTM on every 30-day window..."):
+        pred, day_idx = E.forecast(df)
+    show_results(df, pred, day_idx)
 
 
-def show_actual_trend(df, ph_col):
-    """Show actual pH trend from uploaded data"""
-    
-    ph_values = df[ph_col].values
-    time_steps = np.arange(len(ph_values))
-    
-    # Create beautiful chart
+@st.cache_data(show_spinner=False)
+def load_test_stations():
+    """Test-period data (282 days) for each of the 37 USGS stations."""
+    path = E.ROOT / 'data' / 'raw' / 'water_dataset.mat'
+    if not path.exists():
+        return None
+    from scipy.io import loadmat
+    d = loadmat(str(path))
+    X = np.stack(d['X_te'][0])          # (days, stations, 11)
+    Y = d['Y_te']                       # (stations, days)
+    ids = [str(int(v[0])) for v in d['location_ids']]
+    out = {}
+    for s, sid in enumerate(ids):
+        df = pd.DataFrame(X[:, s, :], columns=E.FORECAST_FEATURES)
+        df.insert(0, 'day', np.arange(1, len(df) + 1))
+        df['pH_actual'] = Y[s]
+        out[sid] = df
+    return out
+
+
+def evaluate_all(stations):
+    errs, ys = [], []
+    for df in stations.values():
+        pred, _ = E.forecast(df)
+        y = E.scale_actual_ph(df['pH_actual'].values)[E.LOOKBACK:]
+        errs.append(pred[:-1] - y)
+        ys.append(y)
+    e, y = np.concatenate(errs), np.concatenate(ys)
+    return {'n': len(e), 'rmse': float(np.sqrt(np.mean(e ** 2))), 'mae': float(np.mean(np.abs(e))),
+            'r2': float(1 - np.sum(e ** 2) / np.sum((y - y.mean()) ** 2))}
+
+
+def show_results(df, pred, day_idx):
+    n = len(df)
+    has_actual = 'pH_actual' in df.columns and df['pH_actual'].notna().all()
+    next_day = pred[-1]                 # forecast for the day after the last row
+    fc_days = day_idx + 1               # 1-based day numbers the forecasts are for
+
+    st.markdown("---")
+    st.markdown("## 🔮 Forecast Results")
+
     fig = go.Figure()
-    
-    # Actual pH line
-    fig.add_trace(go.Scatter(
-        x=time_steps,
-        y=ph_values,
-        mode='lines+markers',
-        name='Your pH Measurements',
-        line=dict(color='#00d4ff', width=3),
-        marker=dict(size=6),
-        hovertemplate='Time: %{x}<br>pH: %{y:.2f}<extra></extra>'
-    ))
-    
-    # Safe range
-    fig.add_hrect(y0=6.5, y1=8.5, fillcolor="green", opacity=0.1,
-                 annotation_text="Safe pH Range (6.5-8.5)", annotation_position="top left")
-    
-    fig.add_hline(y=6.5, line_dash="dot", line_color="green", line_width=2,
-                 annotation_text="Lower Safe Limit")
-    fig.add_hline(y=8.5, line_dash="dot", line_color="green", line_width=2,
-                 annotation_text="Upper Safe Limit")
-    
-    # Warning zones
-    fig.add_hline(y=6.0, line_dash="dot", line_color="orange", line_width=1.5,
-                 annotation_text="⚠️ Warning")
-    fig.add_hline(y=9.0, line_dash="dot", line_color="orange", line_width=1.5,
-                 annotation_text="⚠️ Warning")
-    
-    # Critical zones
-    fig.add_hline(y=5.5, line_dash="dot", line_color="red", line_width=1.5,
-                 annotation_text="🔴 Critical")
-    fig.add_hline(y=9.5, line_dash="dot", line_color="red", line_width=1.5,
-                 annotation_text="🔴 Critical")
-    
+    if has_actual:
+        actual = E.scale_actual_ph(df['pH_actual'].values)
+        fig.add_trace(go.Scatter(x=np.arange(1, n + 1), y=actual, mode='lines+markers', name='Actual pH',
+                                 line=dict(color='#1C7293', width=3), marker=dict(size=5)))
+    fig.add_trace(go.Scatter(x=fc_days[:-1], y=pred[:-1], mode='lines', name='BiLSTM forecast (1 day ahead)',
+                             line=dict(color='#E8871E', width=2.5, dash='dash')))
+    fig.add_trace(go.Scatter(x=[fc_days[-1]], y=[next_day], mode='markers', name='Next-day forecast',
+                             marker=dict(color='#E8871E', size=16, symbol='diamond',
+                                         line=dict(color='white', width=2))))
+    fig.add_vrect(x0=0.5, x1=E.LOOKBACK + 0.5, fillcolor='white', opacity=0.05, line_width=0,
+                  annotation_text="first 30 days: history only", annotation_position="top left")
     fig.update_layout(
-        title={
-            'text': "Your pH Measurements Over Time",
-            'font': {'size': 20, 'color': '#00d4ff'}
-        },
-        xaxis_title="Time Step (hours/days)",
-        yaxis_title="pH Value",
-        height=500,
-        hovermode='x unified',
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white'),
-        xaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
-        yaxis=dict(gridcolor='rgba(255,255,255,0.1)', range=[5, 10])
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Analysis
-    current_ph = ph_values[-1]
-    mean_ph = np.mean(ph_values)
-    std_ph = np.std(ph_values)
-    min_ph = np.min(ph_values)
-    max_ph = np.max(ph_values)
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        delta = current_ph - 7.0
-        st.metric("Current pH", f"{current_ph:.2f}", 
-                 f"{delta:+.2f} from neutral",
-                 help="Latest pH measurement")
-    
-    with col2:
-        st.metric("Average pH", f"{mean_ph:.2f}",
-                 help="Mean pH across all measurements")
-    
-    with col3:
-        st.metric("pH Range", f"{min_ph:.2f} - {max_ph:.2f}",
-                 help="Minimum and maximum pH observed")
-    
-    with col4:
-        trend = "📈 Rising" if ph_values[-1] > ph_values[0] else "📉 Declining"
-        st.metric("Overall Trend", trend)
-    
-    # Status alert
-    if current_ph < 6.5 or current_ph > 8.5:
-        st.markdown(f"""
-        <div class='alert-critical'>
-            <h4>🔴 pH OUTSIDE SAFE RANGE!</h4>
-            <p>Current pH: <b>{current_ph:.2f}</b></p>
-            <p><b>Action Required:</b> Immediate water treatment adjustment needed!</p>
-        </div>
-        """, unsafe_allow_html=True)
-    elif current_ph < 6.8 or current_ph > 8.2:
-        st.markdown(f"""
-        <div class='alert-medium'>
-            <h4>🟠 pH Near Safe Range Boundary</h4>
-            <p>Current pH: <b>{current_ph:.2f}</b></p>
-            <p><b>Recommendation:</b> Monitor closely and be ready to adjust treatment</p>
-        </div>
-        """, unsafe_allow_html=True)
+        title={'text': "Actual vs Forecast pH (normalised 0–1 scale)", 'font': {'size': 20, 'color': '#E8871E'}},
+        xaxis_title="Day", yaxis_title="pH (normalised)", height=500, hovermode='x unified',
+        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='white'),
+        xaxis=dict(gridcolor='rgba(255,255,255,0.1)'), yaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
+        legend=dict(orientation='h', y=-0.18))
+    st.plotly_chart(fig, **E.FULL)
+    st.caption("How to read: blue = what really happened; orange dashes = what the model predicted for each day "
+               "using only the 30 days before it. The closer the two lines, the better. "
+               "The diamond is the forecast for the day after your data ends.")
+
+    last = df.iloc[-E.LOOKBACK:]
+    if has_actual:
+        last_actual = E.scale_actual_ph(last['pH_actual'].values)
+        lo, hi, cur = float(last_actual.min()), float(last_actual.max()), float(last_actual[-1])
     else:
-        st.markdown(f"""
-        <div class='alert-normal'>
-            <h4>✅ pH Within Safe Range</h4>
-            <p>Current pH: <b>{current_ph:.2f}</b> - Water quality is good!</p>
-        </div>
-        """, unsafe_allow_html=True)
+        cur, lo, hi = float(pred[-2]) if len(pred) > 1 else float(next_day), None, None
 
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Next-day forecast", f"{next_day:.3f}", f"{next_day - cur:+.3f} vs last day")
+    c2.metric("Forecasts made", len(pred) - 1 if has_actual else len(pred))
+    c3.metric("Published RMSE", "0.0524", help="On 9,324 held-out test sequences")
 
-def show_forecast(df, ph_col):
-    """Show forecast based on uploaded data"""
-    
-    ph_values = df[ph_col].values
-    n = len(ph_values)
-    
-    # Simple forecast: last value + trend + noise
-    # (In production, would use actual BiLSTM model)
-    trend = (ph_values[-1] - ph_values[0]) / n
-    
-    forecast_steps = min(24, n // 2)  # Forecast up to 24 hours
-    forecast_ph = []
-    
-    for i in range(forecast_steps):
-        predicted = ph_values[-1] + trend * (i + 1) + np.random.normal(0, 0.05)
-        forecast_ph.append(predicted)
-    
-    # Create combined chart
-    fig = go.Figure()
-    
-    # Historical
-    fig.add_trace(go.Scatter(
-        x=np.arange(len(ph_values)),
-        y=ph_values,
-        mode='lines+markers',
-        name='Historical pH',
-        line=dict(color='#00d4ff', width=3),
-        marker=dict(size=6)
-    ))
-    
-    # Forecast
-    forecast_x = np.arange(len(ph_values), len(ph_values) + forecast_steps)
-    fig.add_trace(go.Scatter(
-        x=forecast_x,
-        y=forecast_ph,
-        mode='lines+markers',
-        name='Forecasted pH',
-        line=dict(color='#fbbf24', width=3, dash='dash'),
-        marker=dict(size=8, symbol='diamond')
-    ))
-    
-    # Safe range
-    fig.add_hrect(y0=6.5, y1=8.5, fillcolor="green", opacity=0.1)
-    fig.add_hline(y=6.5, line_dash="dot", line_color="green", line_width=2)
-    fig.add_hline(y=8.5, line_dash="dot", line_color="green", line_width=2)
-    
-    # Warning lines
-    fig.add_hline(y=6.0, line_dash="dot", line_color="orange", line_width=1.5)
-    fig.add_hline(y=9.0, line_dash="dot", line_color="orange", line_width=1.5)
-    
-    fig.update_layout(
-        title={
-            'text': f"pH Forecast (Next {forecast_steps} Hours)",
-            'font': {'size': 20, 'color': '#00d4ff'}
-        },
-        xaxis_title="Time Step",
-        yaxis_title="pH Value",
-        height=500,
-        hovermode='x unified',
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white'),
-        xaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
-        yaxis=dict(gridcolor='rgba(255,255,255,0.1)', range=[5, 10])
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Forecast analysis
-    final_forecast = forecast_ph[-1]
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric(f"Forecast ({forecast_steps}h ahead)", 
-                 f"{final_forecast:.2f}",
-                 f"{final_forecast - ph_values[-1]:+.2f} change")
-    
-    with col2:
-        rmse = 0.053  # Model RMSE
-        st.metric("Uncertainty", f"±{rmse:.3f}",
-                 help="Typical prediction error")
-    
-    with col3:
-        trend = "Worsening 📉" if abs(final_forecast - 7.0) > abs(ph_values[-1] - 7.0) else "Improving 📈"
-        st.metric("Trend Direction", trend)
-    
-    # Forecast alert
-    if final_forecast < 6.5 or final_forecast > 8.5:
-        st.markdown(f"""
-        <div class='alert-critical'>
-            <h4>🔴 FORECAST ALERT!</h4>
-            <p>Predicted pH in {forecast_steps} hours: <b>{final_forecast:.2f}</b></p>
-            <p><b>⚠️ pH will leave safe range!</b></p>
-            <p><b>Action:</b> Adjust water treatment <u>NOW</u> to prevent contamination</p>
-        </div>
-        """, unsafe_allow_html=True)
-    elif final_forecast < 6.8 or final_forecast > 8.2:
-        st.markdown(f"""
-        <div class='alert-medium'>
-            <h4>🟠 Warning</h4>
-            <p>Predicted pH in {forecast_steps} hours: <b>{final_forecast:.2f}</b></p>
-            <p>pH trending toward boundary - increase monitoring</p>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div class='alert-normal'>
-            <h4>✅ Forecast Normal</h4>
-            <p>Predicted pH in {forecast_steps} hours: <b>{final_forecast:.2f}</b></p>
-            <p>pH expected to remain in safe range</p>
-        </div>
-        """, unsafe_allow_html=True)
+    if has_actual and len(pred) > 1:
+        y_true = E.scale_actual_ph(df['pH_actual'].values)[E.LOOKBACK:]
+        y_hat = pred[:-1]
+        err = y_hat - y_true
+        rmse = float(np.sqrt(np.mean(err ** 2)))
+        mae = float(np.mean(np.abs(err)))
+        ss = float(np.sum((y_true - y_true.mean()) ** 2))
+        r2 = 1 - float(np.sum(err ** 2)) / ss if ss > 0 else float('nan')
+        st.markdown("### 🎯 Accuracy on this data")
+        d1, d2, d3 = st.columns(3)
+        d1.metric("RMSE (lower is better)", f"{rmse:.4f}", f"{rmse - 0.0524:+.4f} vs paper", delta_color="inverse")
+        d2.metric("MAE (lower is better)", f"{mae:.4f}", f"{mae - 0.0336:+.4f} vs paper", delta_color="inverse")
+        d3.metric("R² (higher is better)", f"{r2:.3f}" if r2 == r2 else "n/a")
+        st.caption("Judge one station by RMSE and MAE: they are on the same scale as the paper. "
+                   "R² compares the error with how much pH varies; within one station pH varies very little, "
+                   "so R² is usually low here (median ≈ 0.05 across stations) even when the error is small. "
+                   "The published R² (0.525) is over all 37 stations together; use the 'all 37 stations' check above.")
 
+    if lo is not None:
+        if next_day < lo - 0.02 or next_day > hi + 0.02:
+            st.markdown(f"""
+            <div class='alert-medium'><h4>🟠 Trend note</h4>
+            <p>Tomorrow's forecast (<b>{next_day:.3f}</b>) is outside this station's range over the last 30 days
+            ({lo:.3f} – {hi:.3f}). pH may be drifting; check the next readings.</p></div>""",
+                        unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class='alert-normal'><h4>✅ Trend note</h4>
+            <p>Tomorrow's forecast (<b>{next_day:.3f}</b>) is within this station's last-30-day range
+            ({lo:.3f} – {hi:.3f}). No drift expected.</p></div>""", unsafe_allow_html=True)
 
-def show_demo_forecast():
-    """Show demo forecast"""
-    
-    st.markdown("### 📊 Demo: pH Forecasting System")
-    
-    st.markdown("""
-    <div class='info-box'>
-        <p>👆 <b>Upload a CSV file above to forecast YOUR data!</b></p>
-        <p>Below is a sample forecast showing how the system works</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Generate realistic demo
-    np.random.seed(42)
-    time_steps = np.arange(60)
-    
-    # Simulate gradual pH decline
-    actual_ph = 7.2 + 0.3 * np.sin(time_steps / 8) - time_steps * 0.008 + np.random.normal(0, 0.08, 60)
-    forecast_ph = actual_ph[-1] + np.cumsum(np.random.normal(-0.01, 0.03, 20))
-    
-    fig = go.Figure()
-    
-    # Historical
-    fig.add_trace(go.Scatter(
-        x=time_steps[:40],
-        y=actual_ph[:40],
-        mode='lines+markers',
-        name='Historical pH',
-        line=dict(color='#00d4ff', width=3),
-        marker=dict(size=6)
-    ))
-    
-    # Forecast
-    forecast_x = np.arange(40, 60)
-    fig.add_trace(go.Scatter(
-        x=forecast_x,
-        y=forecast_ph,
-        mode='lines+markers',
-        name='Forecasted pH',
-        line=dict(color='#fbbf24', width=3, dash='dash'),
-        marker=dict(size=8, symbol='diamond')
-    ))
-    
-    # Safe range
-    fig.add_hrect(y0=6.5, y1=8.5, fillcolor="green", opacity=0.1,
-                 annotation_text="Safe Range")
-    fig.add_hline(y=6.5, line_dash="dot", line_color="green", line_width=2)
-    fig.add_hline(y=8.5, line_dash="dot", line_color="green", line_width=2)
-    fig.add_hline(y=6.0, line_dash="dot", line_color="orange", line_width=1.5)
-    fig.add_hline(y=5.5, line_dash="dot", line_color="red", line_width=1.5)
-    
-    fig.update_layout(
-        title={
-            'text': "Sample pH Forecast (Demo Data)",
-            'font': {'size': 20, 'color': '#00d4ff'}
-        },
-        xaxis_title="Time Step (Hours)",
-        yaxis_title="pH Value",
-        height=500,
-        hovermode='x unified',
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white'),
-        xaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
-        yaxis=dict(gridcolor='rgba(255,255,255,0.1)', range=[5, 10])
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown("""
-    <div class='explain-box'>
-        <h4>💡 How to Read This Chart:</h4>
-        <ul>
-            <li><b>Blue solid line:</b> Historical pH measurements (what actually happened)</li>
-            <li><b>Yellow dashed line:</b> Forecasted pH (prediction for next hours)</li>
-            <li><b>Green zone:</b> Safe pH range (6.5-8.5)</li>
-            <li><b>Orange/Red lines:</b> Warning and critical thresholds</li>
-        </ul>
-        <p><b>Early Warning:</b> If forecast line exits green zone, you get alert BEFORE contamination happens!</p>
-    </div>
-    """, unsafe_allow_html=True)
+    out = pd.DataFrame({'day': fc_days, 'forecast_pH_normalised': np.round(pred, 4)})
+    if has_actual:
+        act = E.scale_actual_ph(df['pH_actual'].values)
+        out['actual_pH_normalised'] = [round(float(act[d - 1]), 4) if d <= n else None for d in fc_days]
+    st.download_button("📥 Download Forecasts", data=out.to_csv(index=False),
+                       file_name="ph_forecasts.csv", mime="text/csv", **E.FULL)
 
 
 if __name__ == "__main__":

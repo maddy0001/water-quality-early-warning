@@ -513,18 +513,16 @@ def preprocess_classification_data(X: pd.DataFrame, y: pd.Series,
     # Fit and transform
     X_processed, y_processed = preprocessor.fit_transform(X, y, verbose=verbose)
     
-    # Apply SMOTE if requested
-    if apply_smote:
-        X_balanced, y_balanced = preprocessor.apply_smote(
-            X_processed, y_processed, verbose=verbose
-        )
-    else:
-        X_balanced, y_balanced = X_processed, y_processed
-    
-    # Split data
+    # Split FIRST (stratified 80/20), so the test set holds only real samples
     X_train, X_test, y_train, y_test = preprocessor.split_data(
-        X_balanced, y_balanced, verbose=verbose
+        X_processed, y_processed, verbose=verbose
     )
+
+    # Apply SMOTE to the TRAINING set only (prevents synthetic samples leaking into test)
+    if apply_smote:
+        X_train, y_train = preprocessor.apply_smote(
+            X_train, y_train, verbose=verbose
+        )
     
     # Save results
     if save_results:
