@@ -29,7 +29,7 @@ python -m pytest ewsv2\tests -q
 | `signals/` | baselines (S1); paper-1 quorum and ensemble (S2); forecast surprise (S3); fault checks (S4) | S1–S4 |
 | `inject/`, `triage/` | GECCO-Triage benchmark (contaminant signatures, sensor faults), water-vs-sensor decision | S4 |
 | `fusion/`, `calibrate/` | fusion of the paper-1 modules (hand, equal, max, stacking); cross-conformal scores; false-alarm budget (fixed and adaptive) | S5 |
-| `explain/` | attribution | S6 |
+| `explain/` | explainers checked against known answers (deviation, forecast residual, TreeSHAP, occlusion); station transfer | S6 |
 | `llm/` | local LLM reporter and assistant | S7 |
 | `edge/` | ESP32 export and firmware | S8 |
 | `app/` | v2 dashboard pages | S9 |
@@ -56,6 +56,8 @@ python -m ewsv2 evaluate --config s3_forecast  [--set data.source=gecco2019]
 python -m ewsv2 triage   --config s4_triage    [--set data.source=gecco2019]
 python -m ewsv2 inject   --config s4_triage    # write the GECCO-Triage benchmark files
 python -m ewsv2 fuse     --config s5_fusion    [--set data.source=gecco2019]
+python -m ewsv2 explain  --config s6_explain   [--set data.source=gecco2019]   # after fuse
+python -m ewsv2 transfer --config s6_explain   # train on 2018, run on 2019
 python -m ewsv2 run --config full_pipeline
 ```
 

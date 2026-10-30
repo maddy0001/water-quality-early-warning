@@ -11,6 +11,8 @@ evaluate --config NAME     run signals under evaluation protocols
 triage --config NAME       GECCO-Triage benchmark + water-vs-sensor systems (s4_triage)
 inject --config NAME       only write the GECCO-Triage benchmark files
 fuse --config NAME         fusion + calibration under a false-alarm budget (s5_fusion)
+explain --config NAME      explanations checked against known answers (s6_explain; run fuse first)
+transfer --config NAME     train on GECCO 2018, run on GECCO 2019 (s6_explain)
 run --config NAME          run the pipeline steps built so far
 
 ``--set key=value`` overrides any config value, e.g.
@@ -186,6 +188,47 @@ def cmd_fuse(args) -> int:
     return 0
 
 
+def cmd_explain(args) -> int:
+    from ewsv2.explain.run import LABELS, run_explain
+
+    cfg = load_config(args.config, parse_overrides(args.set))
+    ds = _load_dataset(cfg)
+    out = output_dir(cfg["run_name"], ds.name)
+    t0 = time.perf_counter()
+    res = run_explain(ds, cfg, out)
+    s = res["summary"]
+    print(f"\nExplanations on {ds.name} ({time.perf_counter() - t0:.0f} s), first alarm minute of each alarmed test episode")
+    for src in s["source"].unique():
+        sub = s[s["source"] == src]
+        print(f"\n  {src}s ({int(sub['episodes'].iloc[0])})")
+        print(f"  {'explainer':<26} {'hit@1':>6} {'lead@1':>7} {'cover':>6} {'faithful@1':>11}")
+        for _, r in sub.iterrows():
+            vals = [r["hit1"], r["lead1"], r["cover"], r["faithful1"]]
+            txt = [f"{v:.2f}" if np.isfinite(v) else "" for v in vals]
+            print(f"  {LABELS[r['explainer']]:<26} {txt[0]:>6} {txt[1]:>7} {txt[2]:>6} {txt[3]:>11}")
+    print(f"\nReport : {out / 'report.md'}")
+    return 0
+
+
+def cmd_transfer(args) -> int:
+    from ewsv2.explain.transfer import run_transfer
+
+    cfg = load_config(args.config, parse_overrides(args.set))
+    t = cfg.get("transfer") or {}
+    out = output_dir(cfg["run_name"], f"transfer_{t.get('source', 'gecco2018')}_to_{t.get('target', 'gecco2019')}")
+    t0 = time.perf_counter()
+    res = run_transfer(cfg, out)
+    print(f"\nTransfer {t.get('source', 'gecco2018')} -> {t.get('target', 'gecco2019')} ({time.perf_counter() - t0:.0f} s), "
+          f"target official test period")
+    width = int(res["system"].str.len().max())
+    print(f"  {'system':<{width}} {'threshold':<27} {'caught':>7} {'FA/day':>7} {'F1':>5}")
+    for _, r in res.iterrows():
+        print(f"  {r['system']:<{width}} {r['threshold']:<27} {r['caught']:>3}/{r['events']:<3} "
+              f"{r['false_alarms_per_day']:>7.2f} {r['event_f1']:>5.2f}")
+    print(f"\nReport : {out / 'report.md'}")
+    return 0
+
+
 def cmd_inject(args) -> int:
     from ewsv2.triage.run import build_benchmark
 
@@ -208,7 +251,7 @@ def cmd_run(args) -> int:
     cfg = load_config(args.config, parse_overrides(args.set))
     ds = _load_dataset(cfg)
     steps = cfg.get("pipeline", ["load"])
-    done = ["load", "split", "evaluate", "inject", "triage", "fuse", "calibrate"]  # via evaluate / triage / fuse
+    done = ["load", "split", "evaluate", "inject", "triage", "fuse", "calibrate", "explain"]  # via the commands above
     pending = [s for s in steps if s not in done]
     print(f"\nRun '{cfg['run_name']}' (segment {SEGMENT}). Steps done: {', '.join(done)}.")
     if pending:
@@ -241,6 +284,8 @@ def build_parser() -> argparse.ArgumentParser:
         ("triage", cmd_triage, "GECCO-Triage benchmark and the water-vs-sensor systems"),
         ("inject", cmd_inject, "write the GECCO-Triage benchmark files"),
         ("fuse", cmd_fuse, "fusion and calibration under a false-alarm budget"),
+        ("explain", cmd_explain, "explanations checked against known answers"),
+        ("transfer", cmd_transfer, "train on one station, run on another"),
         ("run", cmd_run, "run the pipeline steps built so far"),
     ):
         c = sub.add_parser(name, help=helptext)

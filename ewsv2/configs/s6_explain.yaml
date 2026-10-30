@@ -1,0 +1,18 @@
+# Segment 6 – explanations checked against known answers (E9) and transfer 2018 -> 2019 (E10).
+#   python -m ewsv2 explain  --config s6_explain                              (needs S5 run first)
+#   python -m ewsv2 explain  --config s6_explain --set data.source=gecco2019
+#   python -m ewsv2 transfer --config s6_explain
+extends: s5_fusion
+run_name: s6_explain
+title: Explanations and transfer
+
+explain:
+  alarms_from: s5_fusion     # read the S5 pipeline alarms of the same dataset
+  fault_grace: 10
+  faithful_drop: 0.5         # deletion test: the top sensor must carry >= 50% of the classifier score
+
+transfer:
+  source: gecco2018
+  target: gecco2019
+  roles: [temperature, ph, conductivity, turbidity]   # sensors both stations have
+  budget: 1.0
