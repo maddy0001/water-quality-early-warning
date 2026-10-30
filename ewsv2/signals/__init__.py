@@ -11,7 +11,8 @@ Segment 2 – the paper-1 models, ported to one-minute streams:
 Segment 3 – forecast surprise (signal F):
     forecast_persistence, forecast_linear, v1_gru_attention, v1_bilstm_attention
 
-Segment 4 adds the fault checks.
+Segment 4 – sensor fault checks:
+    fault_checks (stuck, dropout, spike, drift)
 """
 
-from ewsv2.signals import baselines, forecast, v1_port  # noqa: F401
+from ewsv2.signals import baselines, faults, forecast, v1_port  # noqa: F401

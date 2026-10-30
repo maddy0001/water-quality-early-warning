@@ -1,0 +1,28 @@
+# Segment 4 – GECCO-Triage and the water-vs-sensor decision (contributions C1, C3; E7, E8).
+#   python -m ewsv2 triage --config s4_triage
+#   python -m ewsv2 triage --config s4_triage --set data.source=gecco2019
+#   python -m ewsv2 inject --config s4_triage           # only write the benchmark files
+extends: base
+run_name: s4_triage
+title: Water event or sensor fault?
+
+inject:
+  name: gecco_triage
+  params:
+    reps_test: 2          # copies of each (type, level) in the official test period
+    reps_pretest: 2       # ... and in the pre-test period (training / thresholds only)
+    buffer_minutes: 240   # distance to real events and to other episodes
+    seed: 2026
+
+triage:
+  splitter: {name: official, params: {cv_folds: 4, gap_minutes: 1440}}
+  tolerance_after: 0
+  merge_gap: 5
+  max_episode_minutes: 60
+  fault_grace: 10         # minutes after a fault in which a sensor alert still counts
+  fault_checks: {}        # FaultChecks parameters, e.g. {drift_z: 6.0, spike_units: 8.0}
+  detector: {n_estimators: 100}
+  systems:
+    - detector_only
+    - rules
+    - learned

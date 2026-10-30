@@ -8,6 +8,8 @@ fetch {gecco2018|gecco2019|all} [--force]
 inspect --config NAME      data inspection report (Segment 0)
 evaluate --config NAME     run signals under evaluation protocols
                            (s1_audit, s1_baselines, s2_v1_port, s3_forecast, ...)
+triage --config NAME       GECCO-Triage benchmark + water-vs-sensor systems (s4_triage)
+inject --config NAME       only write the GECCO-Triage benchmark files
 run --config NAME          run the pipeline steps built so far
 
 ``--set key=value`` overrides any config value, e.g.
@@ -127,11 +129,57 @@ def cmd_evaluate(args) -> int:
     return 0
 
 
+def cmd_triage(args) -> int:
+    from ewsv2.triage.run import run_triage
+
+    cfg = load_config(args.config, parse_overrides(args.set))
+    ds = _load_dataset(cfg)
+    out = output_dir(cfg["run_name"], ds.name)
+    t0 = time.perf_counter()
+    res = run_triage(ds, cfg, out)
+    summ = res["summary"]
+    print(f"\n{cfg.get('title', 'Triage')} on {ds.name} ({time.perf_counter() - t0:.0f} s), official test period")
+    width = max(31, int(summ["label"].str.len().max()))
+    print(f"  {'system':<{width}} {'real':>7} {'contam.':>8} {'waterFA/d':>9} | {'fault->sensor':>13} "
+          f"{'fault->water':>12} {'missed':>6} {'sensorFA/d':>10}")
+    for _, r in summ.iterrows():
+        print(f"  {r['label']:<{width}} {r['real_caught']:>3}/{r['real_n']:<3} {r['contaminant_caught']:>4}/{r['contaminant_n']:<3} "
+              f"{r['water_false_alarms_per_day']:>9.2f} | {r['fault_correct']:>9}/{r['fault_n']:<3} "
+              f"{r['fault_raised_water_alarm']:>8}/{r['fault_n']:<3} {r['fault_missed']:>6} "
+              f"{r['false_sensor_alerts_per_day']:>10.2f}")
+    scan = res["scan"]
+    if len(scan):
+        top = scan.sort_values("span_minutes", ascending=False).head(3)
+        print("\nLongest fault flags on the real data (nothing injected):")
+        for _, r in top.iterrows():
+            print(f"  {r['check']:<7} {r['sensor']:<6} from {r['start']:%Y-%m-%d %H:%M}  {r['span_minutes']:>5} min  ({r['period']})")
+    print(f"\nReport : {out / 'report.md'}")
+    return 0
+
+
+def cmd_inject(args) -> int:
+    from ewsv2.triage.run import build_benchmark
+
+    cfg = load_config(args.config, parse_overrides(args.set))
+    ds = _load_dataset(cfg)
+    inj, episodes = build_benchmark(ds, cfg)
+    out = output_dir("benchmarks")
+    stream = out / f"gecco_triage_{ds.name}.csv"
+    eps = out / f"gecco_triage_{ds.name}_episodes.csv"
+    inj.frame.to_csv(stream, date_format="%Y-%m-%d %H:%M:%S")
+    episodes.to_csv(eps, index=False)
+    print(f"\nGECCO-Triage ({ds.name}): {len(episodes)} injected episodes "
+          f"{episodes.groupby(['period', 'kind']).size().to_dict()}")
+    print(f"Stream   : {stream}")
+    print(f"Episodes : {eps}")
+    return 0
+
+
 def cmd_run(args) -> int:
     cfg = load_config(args.config, parse_overrides(args.set))
     ds = _load_dataset(cfg)
     steps = cfg.get("pipeline", ["load"])
-    done = ["load", "split", "evaluate"]  # split/evaluate run via: python -m ewsv2 evaluate --config ...
+    done = ["load", "split", "evaluate", "inject", "triage"]  # via: python -m ewsv2 evaluate / triage
     pending = [s for s in steps if s not in done]
     print(f"\nRun '{cfg['run_name']}' (segment {SEGMENT}). Steps done: {', '.join(done)}.")
     if pending:
@@ -161,6 +209,8 @@ def build_parser() -> argparse.ArgumentParser:
     for name, func, helptext in (
         ("inspect", cmd_inspect, "write the data inspection report"),
         ("evaluate", cmd_evaluate, "evaluate signals under one or more protocols"),
+        ("triage", cmd_triage, "GECCO-Triage benchmark and the water-vs-sensor systems"),
+        ("inject", cmd_inject, "write the GECCO-Triage benchmark files"),
         ("run", cmd_run, "run the pipeline steps built so far"),
     ):
         c = sub.add_parser(name, help=helptext)

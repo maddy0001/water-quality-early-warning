@@ -14,7 +14,7 @@ A config then picks it by name, and :func:`build` creates it::
 
 Kinds used in the project (one per layer of the architecture):
 
-    source, feature, splitter, signal, fusion, calibrator, triage,
+    source, injector, feature, splitter, signal, fusion, calibrator, triage,
     explainer, reporter, metric, output
 """
 
@@ -26,6 +26,7 @@ from typing import Any
 
 KINDS = (
     "source",
+    "injector",
     "feature",
     "splitter",
     "signal",
@@ -45,6 +46,8 @@ _PLUGIN_PACKAGES = (
     "ewsv2.features",
     "ewsv2.evaluate",
     "ewsv2.signals",
+    "ewsv2.inject",
+    "ewsv2.triage",
 )
 
 _REGISTRY: dict[str, dict[str, Any]] = {kind: {} for kind in KINDS}

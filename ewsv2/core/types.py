@@ -7,8 +7,8 @@ A sensor stream is a pandas DataFrame:
 
   - ``EVENT``        1 if the minute belongs to a labelled water-quality event, else 0
   - ``LABEL_CLASS``  0 = normal, 1 = water event, 2 = sensor fault
-                     (added in Segment 4 by the injection toolkit; until then it
-                     mirrors EVENT)
+                     (real data: mirrors EVENT; the S4 injection toolkit adds
+                     injected contaminants as 1 and injected faults as 2)
 
 Keeping one simple, shared format is what lets every plug-in be swapped.
 """
