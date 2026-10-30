@@ -7,7 +7,7 @@ fetch {gecco2018|gecco2019|all} [--force]
                            download the GECCO data into data/raw/gecco/
 inspect --config NAME      data inspection report (Segment 0)
 evaluate --config NAME     run signals under evaluation protocols
-                           (s1_audit, s1_baselines, s2_v1_port, ...)
+                           (s1_audit, s1_baselines, s2_v1_port, s3_forecast, ...)
 run --config NAME          run the pipeline steps built so far
 
 ``--set key=value`` overrides any config value, e.g.
@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 import time
 
@@ -170,6 +171,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")   # hide TensorFlow start-up chatter
     args = build_parser().parse_args(argv)
     _setup_logging(args.verbose)
     try:

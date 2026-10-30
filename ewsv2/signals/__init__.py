@@ -8,7 +8,10 @@ Segment 2 – the paper-1 models, ported to one-minute streams:
     v1_quorum   (Isolation Forest, LOF, One-Class SVM, autoencoder; 2-of-4 vote)
     v1_ensemble (Random Forest + XGBoost + SVM; weighted soft vote)
 
-Segments 3–4 add the BiLSTM-attention forecast surprise and the fault checks.
+Segment 3 – forecast surprise (signal F):
+    forecast_persistence, forecast_linear, v1_gru_attention, v1_bilstm_attention
+
+Segment 4 adds the fault checks.
 """
 
-from ewsv2.signals import baselines, v1_port  # noqa: F401
+from ewsv2.signals import baselines, forecast, v1_port  # noqa: F401
