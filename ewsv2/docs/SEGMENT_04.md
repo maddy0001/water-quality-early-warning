@@ -160,22 +160,27 @@ Optional: `python -m ewsv2 inject --config s4_triage` writes the whole GECCO-Tri
 
 ## 5. Expected output (verified in the cloud run)
 
+*Updated in S5.* The first S4 release gave slightly different numbers on different computers
+(tiny last-digit differences in the injected values reached the models). Since S5 the injected
+values are rounded to each sensor's reading step, as a real sensor reports them, and the numbers
+below are identical everywhere. The conclusions did not change.
+
 ### GECCO 2018 – official test period (46 real events, 30 injected contaminants, 24 injected faults)
 
 ```
   system                             real  contam. waterFA/d | fault->sensor fault->water missed sensorFA/d
-  Detector only (v1-style)         27/46    14/30       0.35 |         0/24         7/24      17       0.00
-  Detector + fault checks (rules)  27/46    14/30       0.14 |        14/24         1/24       9       0.40
-  Learned three-class triage       22/46    28/30       0.21 |         7/24         1/24      16       0.07
+  Detector only (v1-style)         28/46    17/30       0.45 |         0/24         7/24      17       0.00
+  Detector + fault checks (rules)  28/46    17/30       0.21 |        14/24         1/24       9       0.44
+  Learned three-class triage       21/46    27/30       0.21 |        11/24         1/24      12       0.33
 ```
 
 ### GECCO 2019 – official test period (12 real events, 18 injected contaminants, 24 injected faults)
 
 ```
   system                             real  contam. waterFA/d | fault->sensor fault->water missed sensorFA/d
-  Detector only (v1-style)         10/12     4/18       0.14 |         0/24         3/24      21       0.00
-  Detector + fault checks (rules)  10/12     4/18       0.00 |        14/24         0/24      10       0.99
-  Learned three-class triage        6/12     7/18       0.00 |        11/24         0/24      13       0.00
+  Detector only (v1-style)          9/12     3/18       0.14 |         0/24         3/24      21       0.00
+  Detector + fault checks (rules)   9/12     3/18       0.00 |        14/24         0/24      10       0.99
+  Learned three-class triage        8/12    10/18       0.00 |        11/24         0/24      13       0.00
 ```
 
 `waterFA/d` = false water alarms per day (including alarms raised by faulty sensors);
@@ -184,32 +189,33 @@ raised a water alarm; `sensorFA/d` = false sensor alerts per day.
 
 | | 2018 | 2019 |
 |---|---|---|
-| Water event F1, detector only → rules | 0.57 → 0.64 | 0.60 → 0.64 |
+| Water event F1, detector only → rules | 0.58 → 0.66 | 0.53 → 0.57 |
 | Faulty sensors that raised a water alarm, detector only → rules | 7 → 1 | 3 → 0 |
 | Real events lost by the triage | 0 | 0 |
 | Sensor alerts that name the right sensor (rules) | 100% | 93% |
-| False sensor alerts / day (budget 0.5, set on pre-test water) | 0.40 | 0.99 |
+| False sensor alerts / day (budget 0.5, set on pre-test water) | 0.44 | 0.99 |
 
 What the numbers say:
 
 1. **C1 – the triage works, at no cost to detection.** With the same detector and threshold, the
    rules turn 14 of 24 faults into "check the sensor" on both datasets, stop faulty sensors from
-   raising water alarms (7 → 1 and 3 → 0), cut false water alarms by 60% (2018) and to zero (2019),
+   raising water alarms (7 → 1 and 3 → 0), cut false water alarms by more than half (2018: 0.45 →
+   0.21 per day) and to zero (2019),
    and lose no real event. No fault label is used anywhere in the rules.
 2. **Rules beat learning for faults.** The learned triage saw 24 injected faults in training and
-   still gets fewer right (7 and 11) and catches fewer real events (22/46, 6/12): with few examples a
+   still gets fewer right (11 and 11) and catches fewer real events (21/46, 8/12): with few examples a
    classifier learns the training faults, while the checks encode what a fault *is*.
 3. **E7 – a detector trained on past events only knows those events.** The S1 detector learned the
-   2018 events, which are mostly pH changes. It catches alkaline and high-dose slugs but no inorganic
-   slug and no low-dose pesticide or sewage slug. On 2019 (turbidity-led events) it catches 4 of 18 and
-   no alkaline slug at all. The learned triage, trained on injected signatures, catches 28/30 on 2018 –
-   but only for signature types it has seen. This is the case for S5: fuse the supervised detector with
+   2018 events, which are mostly pH changes. It catches alkaline and high-dose slugs but only 1 of 6
+   inorganic slugs and no low-dose slug of any type. On 2019 (turbidity-led events) it catches 3 of 18
+   and no alkaline slug at all. The learned triage, trained on injected signatures, catches 27/30 on
+   2018 and 10/18 on 2019 – but only for signature types it has seen. This is the case for S5: fuse the supervised detector with
    the unsupervised and forecast signals of S2–S3, which do not depend on past event types.
 4. **E8 – which faults are easy.** Dropouts: 6/6 on both datasets, at the first minute. Spikes and
    stuck sensors: 2–3 of 6. Slow drifts: 2/6 (2018) and 4/6 (2019), usually found only after 4–7 h.
    Stuck readings on coarse sensors (temperature at 0.1 °C) are only caught when partner sensors prove
    the reading should have moved – the check refuses to guess.
-5. **The budget held in 2018 (0.40/day) but not in 2019 (0.99/day).** Limits learned in summer
+5. **The budget held in 2018 (0.44/day) but not in 2019 (0.99/day).** Limits learned in summer
    over-fire in a different season. Holding a stated rate under drift is exactly what the adaptive
    calibration of S5 (C4) is for.
 6. **Real data, nothing injected.** On 2018 the longest flag is conductivity (`Leit`) stuck at 198.0

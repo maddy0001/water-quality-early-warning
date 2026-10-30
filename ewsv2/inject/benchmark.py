@@ -12,6 +12,9 @@ numbers), with different random draws. Every episode keeps a ``buffer_minutes`` 
 from real events and from other episodes, so outcomes can be attributed cleanly, and is
 placed only where at least ``min_data`` of its minutes have data.
 
+Injected values are rounded to each sensor's reading step, as the real sensor would
+report them.
+
 Output: the injected :class:`Dataset` (same sensors, same periods) and the episode table
 (one row per injected episode), which the triage evaluation reads.
 """
@@ -27,11 +30,23 @@ import pandas as pd
 from ewsv2.core.registry import register
 from ewsv2.core.types import CLASS_COL, EVENT_COL, Dataset
 from ewsv2.evaluate.metrics import segments
-from ewsv2.features.scale import sensor_units
+from ewsv2.features.scale import reading_step, sensor_units
 from ewsv2.inject import faults as F
 from ewsv2.inject import signatures as S
 
 log = logging.getLogger(__name__)
+
+
+def _report(values: np.ndarray, step: float) -> np.ndarray:
+    """Round injected values the way the sensor reports them (its reading step).
+
+    Realistic, and it makes the benchmark identical on every computer: without it, the
+    last-digit differences of cos() between CPUs reach the models' split points.
+    """
+    v = np.asarray(values, dtype=float)
+    if step > 0:
+        v = np.round(v / step) * step
+    return np.round(v, 9)
 
 
 def pretest_mask(ds: Dataset) -> np.ndarray:
@@ -108,6 +123,7 @@ class TriageBenchmark:
         y_real = frame[EVENT_COL].to_numpy().astype(bool)
         pre, tst = pretest_mask(ds), test_mask(ds)
         units = sensor_units(frame, sensors, pre & ~y_real & has_data)
+        steps = {s: reading_step(frame[s][pre & has_data]) for s in sensors}
         fault_sensors = [s for s in sensors if self.roles.get(s) in S.QUALITY_ROLES]
         if not fault_sensors:
             raise ValueError("no quality sensors to inject faults into; check the roles mapping")
@@ -184,7 +200,7 @@ class TriageBenchmark:
                     new = values[s][seg] + r * d["jitter"][s] * dose * units[s] * delta
                     if self.roles.get(s) in S.NON_NEGATIVE:
                         new = np.maximum(new, 0.0)
-                    values[s][seg] = np.where(np.isfinite(original[s][seg]), new, np.nan)
+                    values[s][seg] = np.where(np.isfinite(original[s][seg]), _report(new, steps[s]), np.nan)
                     if abs(r) >= S.RESPONDING_LEVEL:
                         changed.append(s)
                 ev[start:end + 1] = 1
@@ -198,7 +214,7 @@ class TriageBenchmark:
                 new, info = F.apply_fault(values[lead], start, length, d["type"], d["level"], units[lead], rng)
                 if "length" in info:          # spikes: the episode ends at the last spike
                     end = start + info.pop("length") - 1
-                values[lead] = new
+                values[lead] = _report(new, steps[lead])
                 cls[start:end + 1] = 2
                 sensors_hit = [lead]
             rows.append({

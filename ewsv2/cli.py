@@ -10,6 +10,7 @@ evaluate --config NAME     run signals under evaluation protocols
                            (s1_audit, s1_baselines, s2_v1_port, s3_forecast, ...)
 triage --config NAME       GECCO-Triage benchmark + water-vs-sensor systems (s4_triage)
 inject --config NAME       only write the GECCO-Triage benchmark files
+fuse --config NAME         fusion + calibration under a false-alarm budget (s5_fusion)
 run --config NAME          run the pipeline steps built so far
 
 ``--set key=value`` overrides any config value, e.g.
@@ -157,6 +158,34 @@ def cmd_triage(args) -> int:
     return 0
 
 
+def cmd_fuse(args) -> int:
+    from ewsv2.fusion.run import run_fusion
+
+    cfg = load_config(args.config, parse_overrides(args.set))
+    ds = _load_dataset(cfg)
+    out = output_dir(cfg["run_name"], ds.name)
+    t0 = time.perf_counter()
+    res = run_fusion(ds, cfg, out)
+    r = res["results"]
+    b = res["info"]["budget"]
+    print(f"\n{cfg.get('title', 'Fusion')} on {ds.name} ({time.perf_counter() - t0:.0f} s), official test period, "
+          f"budget {b:g} false alarm/day")
+    width = max(26, int(r["fusion"].str.len().max()))
+    print(f"  {'fusion':<{width}} {'threshold':<9} {'real':>7} {'contam.':>8} {'FA/day':>7} {'worst wk':>8} {'F1':>5}")
+    for _, x in r.iterrows():
+        print(f"  {x['fusion']:<{width}} {x['calibrator']:<9} {x['real_caught']:>3}/{x['real_n']:<3} "
+              f"{x['contaminant_caught']:>4}/{x['contaminant_n']:<3} {x['false_alarms_per_day']:>7.2f} "
+              f"{x['worst_week_fa_per_day']:>8.2f} {x['event_f1']:>5.2f}")
+    print(f"\nFull pipeline: {res['info']['main_fusion']} (chosen on pre-test data) + adaptive threshold:")
+    for p in res["pipelines"]:
+        print(f"  {p['variant']:<35} real {p['real_caught']:>2}/{p['real_n']:<2} contam. {p['contaminant_caught']:>2}/"
+              f"{p['contaminant_n']:<2} waterFA/d {p['water_false_alarms_per_day']:.2f} | faults->sensor "
+              f"{p['fault_correct']:>2}/{p['fault_n']} ->water {p['fault_raised_water_alarm']:>2} | "
+              f"sensorFA/d {p['false_sensor_alerts_per_day']:.2f}")
+    print(f"\nReport : {out / 'report.md'}")
+    return 0
+
+
 def cmd_inject(args) -> int:
     from ewsv2.triage.run import build_benchmark
 
@@ -179,7 +208,7 @@ def cmd_run(args) -> int:
     cfg = load_config(args.config, parse_overrides(args.set))
     ds = _load_dataset(cfg)
     steps = cfg.get("pipeline", ["load"])
-    done = ["load", "split", "evaluate", "inject", "triage"]  # via: python -m ewsv2 evaluate / triage
+    done = ["load", "split", "evaluate", "inject", "triage", "fuse", "calibrate"]  # via evaluate / triage / fuse
     pending = [s for s in steps if s not in done]
     print(f"\nRun '{cfg['run_name']}' (segment {SEGMENT}). Steps done: {', '.join(done)}.")
     if pending:
@@ -211,6 +240,7 @@ def build_parser() -> argparse.ArgumentParser:
         ("evaluate", cmd_evaluate, "evaluate signals under one or more protocols"),
         ("triage", cmd_triage, "GECCO-Triage benchmark and the water-vs-sensor systems"),
         ("inject", cmd_inject, "write the GECCO-Triage benchmark files"),
+        ("fuse", cmd_fuse, "fusion and calibration under a false-alarm budget"),
         ("run", cmd_run, "run the pipeline steps built so far"),
     ):
         c = sub.add_parser(name, help=helptext)
