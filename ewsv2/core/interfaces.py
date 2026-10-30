@@ -8,18 +8,17 @@ inherit from them – it just needs the same methods.
 Segment where each is first implemented:
 
     DataSource  S0   Splitter  S1   Metric     S1
-    Signal      S2   Fusion    S5   Calibrator S5
+    Signal      S1 (baselines), S2-S4   Fusion    S5   Calibrator S5
     Triage      S4   Explainer S6   Reporter   S7   Output S8/S9
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from typing import Any, Protocol, runtime_checkable
 
 import pandas as pd
 
-from ewsv2.core.types import Alarm, Dataset, SignalOutput
+from ewsv2.core.types import Alarm, Dataset, SignalOutput, Split
 
 
 @runtime_checkable
@@ -33,20 +32,34 @@ class DataSource(Protocol):
 
 @runtime_checkable
 class Splitter(Protocol):
-    """Yields (train, test) index pairs. Must never put the future in train."""
+    """Decides which rows fit the model, set thresholds, and test it.
 
-    def split(self, frame: pd.DataFrame) -> Iterator[tuple[pd.Index, pd.Index]]: ...
+    Honest splitters keep time order and leave a gap; leaky ones (random) exist
+    only so the audit can show how much they inflate scores.
+    """
+
+    def split(self, dataset: Dataset) -> Split: ...
 
 
 @runtime_checkable
 class Signal(Protocol):
-    """Forecast surprise, detector vote, event classifier or fault check."""
+    """Forecast surprise, detector vote, event classifier or fault check.
+
+    Three steps, so that time-based features are always computed on the full,
+    unbroken stream (causally: each row only sees the past), whatever the split:
+
+    1. ``transform(frame)`` – per-row representation of the whole stream
+    2. ``fit(Z_fit, y_fit)`` – learn from the fit rows only
+    3. ``score(Z)``          – abnormality per row (higher = more abnormal)
+    """
 
     name: str
 
-    def fit(self, train: pd.DataFrame, labels: pd.Series | None = None) -> Signal: ...
+    def transform(self, frame: pd.DataFrame) -> pd.DataFrame: ...
 
-    def score(self, frame: pd.DataFrame) -> SignalOutput: ...
+    def fit(self, Z: pd.DataFrame, y: pd.Series | None = None) -> Signal: ...
+
+    def score(self, Z: pd.DataFrame) -> pd.Series: ...
 
 
 @runtime_checkable

@@ -6,6 +6,8 @@ info                       version, registered plug-ins, data files found
 fetch {gecco2018|gecco2019|all} [--force]
                            download the GECCO data into data/raw/gecco/
 inspect --config NAME      data inspection report (Segment 0)
+evaluate --config NAME     run signals under evaluation protocols (Segment 1:
+                           s1_audit = leakage audit, s1_baselines = honest baselines)
 run --config NAME          run the pipeline steps built so far
 
 ``--set key=value`` overrides any config value, e.g.
@@ -19,6 +21,8 @@ import json
 import logging
 import sys
 import time
+
+import numpy as np
 
 from ewsv2 import SEGMENT, __version__
 from ewsv2.core.config import ConfigError, load_config, parse_overrides
@@ -98,15 +102,39 @@ def cmd_inspect(args) -> int:
     return 0
 
 
+def cmd_evaluate(args) -> int:
+    from ewsv2.evaluate.audit import HEADLINE_NAMES, run_protocols
+
+    cfg = load_config(args.config, parse_overrides(args.set))
+    if "evaluate" not in cfg:
+        raise ConfigError(f"{cfg['_file']} has no 'evaluate:' section")
+    ds = _load_dataset(cfg)
+    out = output_dir(cfg["run_name"], ds.name)
+    t0 = time.perf_counter()
+    results = run_protocols(ds, cfg, out)
+    print(f"\n{cfg.get('title', 'Evaluation')} on {ds.name} ({time.perf_counter() - t0:.0f} s)")
+    for proto, sub in results.groupby("protocol", sort=False):
+        metric = sub["headline_metric"].iloc[0]
+        print(f"\n{sub['protocol_label'].iloc[0]}  [{HEADLINE_NAMES.get(metric, metric)}]")
+        print(f"  {'signal':<17} {'headline':>8} {'caught':>8} {'recall':>7} {'FA/day':>7} {'delay':>6}")
+        for _, r in sub.iterrows():
+            delay = "" if not np.isfinite(r["median_delay_min"]) else f"{r['median_delay_min']:.0f}"
+            print(f"  {r['signal']:<17} {r['headline_value']:>8.2f} {int(r['detected']):>3}/{int(r['events']):<4} "
+                  f"{r['event_recall']:>7.2f} {r['false_alarms_per_day']:>7.2f} {delay:>6}")
+    print(f"\nReport : {out / 'report.md'}")
+    return 0
+
+
 def cmd_run(args) -> int:
     cfg = load_config(args.config, parse_overrides(args.set))
     ds = _load_dataset(cfg)
     steps = cfg.get("pipeline", ["load"])
-    done = ["load"]
+    done = ["load", "split", "evaluate"]  # split/evaluate run via: python -m ewsv2 evaluate --config ...
     pending = [s for s in steps if s not in done]
     print(f"\nRun '{cfg['run_name']}' (segment {SEGMENT}). Steps done: {', '.join(done)}.")
     if pending:
         print(f"Steps not built yet (arrive in later segments): {', '.join(pending)}")
+    print("Split and evaluation run through:  python -m ewsv2 evaluate --config s1_baselines")
     out = output_dir(cfg["run_name"])
     (out / "run_info.json").write_text(json.dumps({
         "config": cfg["_file"], "segment": SEGMENT, "dataset": ds.name,
@@ -130,6 +158,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     for name, func, helptext in (
         ("inspect", cmd_inspect, "write the data inspection report"),
+        ("evaluate", cmd_evaluate, "evaluate signals under one or more protocols"),
         ("run", cmd_run, "run the pipeline steps built so far"),
     ):
         c = sub.add_parser(name, help=helptext)

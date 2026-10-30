@@ -42,6 +42,9 @@ KINDS = (
 # Add a line here when a new plug-in package is created.
 _PLUGIN_PACKAGES = (
     "ewsv2.data",
+    "ewsv2.features",
+    "ewsv2.evaluate",
+    "ewsv2.signals",
 )
 
 _REGISTRY: dict[str, dict[str, Any]] = {kind: {} for kind in KINDS}

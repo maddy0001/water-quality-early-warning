@@ -81,6 +81,28 @@ class Dataset:
 
 
 @dataclass
+class Split:
+    """Which rows are used to fit, to choose thresholds (validation) and to test.
+
+    Each mask is a boolean numpy array aligned with ``Dataset.frame``. The three
+    masks never overlap. ``leaky`` marks protocols kept only for the audit.
+    """
+
+    name: str
+    fit: Any
+    val: Any
+    test: Any
+    leaky: bool = False
+    description: str = ""
+    # Optional blocked cross-validation inside the pre-test data: list of (fit_mask, val_mask).
+    # When present, thresholds are chosen on out-of-fold scores over ``val``.
+    folds: list = field(default_factory=list)
+
+    def sizes(self) -> dict[str, int]:
+        return {"fit": int(self.fit.sum()), "val": int(self.val.sum()), "test": int(self.test.sum())}
+
+
+@dataclass
 class SignalOutput:
     """What every signal (forecast, detector, classifier, fault check) returns.
 

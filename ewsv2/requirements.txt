@@ -9,3 +9,6 @@ pyyaml>=6.0
 matplotlib>=3.8
 pyreadr>=0.5            # reads the GECCO 2018 R data files during fetch
 pytest>=8.0
+
+# S1 – evaluation, baselines (Isolation Forest, Random Forest)
+scikit-learn>=1.4,<1.6

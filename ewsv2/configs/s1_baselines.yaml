@@ -1,0 +1,14 @@
+# Segment 1 – honest baselines (experiment E2): the bar every later signal must clear.
+#   python -m ewsv2 evaluate --config s1_baselines
+#   python -m ewsv2 evaluate --config s1_baselines --set data.source=gecco2019
+extends: s1_audit
+run_name: s1_baselines
+title: Honest baselines
+
+evaluate:
+  protocols:
+    - name: D_honest
+      label: "Official test period, threshold from blocked cross-validation"
+      splitter: {name: official, params: {cv_folds: 4, gap_minutes: 1440}}
+      threshold: {choose_on: val, objective: event_f1}
+      headline: event_f1
