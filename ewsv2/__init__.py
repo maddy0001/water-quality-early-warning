@@ -11,4 +11,4 @@ Version 1 of the project (paper 1, ICESC 2026) lives at the repository root
 """
 
 __version__ = "2.0.0.dev0"
-SEGMENT = "S1"
+SEGMENT = "S2"

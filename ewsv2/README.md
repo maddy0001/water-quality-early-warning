@@ -25,8 +25,8 @@ python -m pytest ewsv2\tests -q
 | `core/` | registry, config, types, interfaces | S0 |
 | `data/` | data sources, fetch, inspection | S0 |
 | `evaluate/` | splits, event metrics, thresholds, bootstrap, leakage audit | S1 |
-| `features/` | causal feature builders | S1 |
-| `signals/` | baselines (S1); detectors, classifier, forecast, fault checks (S2–S4) | S1–S4 |
+| `features/` | causal feature builders; coherence model | S1–S2 |
+| `signals/` | baselines (S1); paper-1 quorum and ensemble (S2); forecast, fault checks (S3–S4) | S1–S4 |
 | `inject/`, `triage/` | GECCO-Triage benchmark, water-vs-sensor decision | S4 |
 | `fusion/`, `calibrate/` | learned fusion, conformal alarm budget | S5 |
 | `explain/` | attribution | S6 |
@@ -51,6 +51,7 @@ python -m ewsv2 fetch {gecco2018|gecco2019|all}
 python -m ewsv2 inspect --config s0_inspect [--set data.source=gecco2019]
 python -m ewsv2 evaluate --config s1_audit          # leakage audit (GECCO 2018)
 python -m ewsv2 evaluate --config s1_baselines [--set data.source=gecco2019]
+python -m ewsv2 evaluate --config s2_v1_port   [--set data.source=gecco2019]
 python -m ewsv2 run --config full_pipeline
 ```
 

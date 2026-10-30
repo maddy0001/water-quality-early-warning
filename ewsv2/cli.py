@@ -6,8 +6,8 @@ info                       version, registered plug-ins, data files found
 fetch {gecco2018|gecco2019|all} [--force]
                            download the GECCO data into data/raw/gecco/
 inspect --config NAME      data inspection report (Segment 0)
-evaluate --config NAME     run signals under evaluation protocols (Segment 1:
-                           s1_audit = leakage audit, s1_baselines = honest baselines)
+evaluate --config NAME     run signals under evaluation protocols
+                           (s1_audit, s1_baselines, s2_v1_port, ...)
 run --config NAME          run the pipeline steps built so far
 
 ``--set key=value`` overrides any config value, e.g.
@@ -116,10 +116,11 @@ def cmd_evaluate(args) -> int:
     for proto, sub in results.groupby("protocol", sort=False):
         metric = sub["headline_metric"].iloc[0]
         print(f"\n{sub['protocol_label'].iloc[0]}  [{HEADLINE_NAMES.get(metric, metric)}]")
-        print(f"  {'signal':<17} {'headline':>8} {'caught':>8} {'recall':>7} {'FA/day':>7} {'delay':>6}")
+        width = max(17, int(sub["signal"].str.len().max()))
+        print(f"  {'signal':<{width}} {'headline':>8} {'caught':>8} {'recall':>7} {'FA/day':>7} {'delay':>6}")
         for _, r in sub.iterrows():
             delay = "" if not np.isfinite(r["median_delay_min"]) else f"{r['median_delay_min']:.0f}"
-            print(f"  {r['signal']:<17} {r['headline_value']:>8.2f} {int(r['detected']):>3}/{int(r['events']):<4} "
+            print(f"  {r['signal']:<{width}} {r['headline_value']:>8.2f} {int(r['detected']):>3}/{int(r['events']):<4} "
                   f"{r['event_recall']:>7.2f} {r['false_alarms_per_day']:>7.2f} {delay:>6}")
     print(f"\nReport : {out / 'report.md'}")
     return 0

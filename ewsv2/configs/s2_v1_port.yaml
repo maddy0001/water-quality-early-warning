@@ -1,0 +1,24 @@
+# Segment 2 – paper-1 models on one-minute streams, honest protocol D.
+#   python -m ewsv2 evaluate --config s2_v1_port
+#   python -m ewsv2 evaluate --config s2_v1_port --set data.source=gecco2019
+#
+# Rows in the report:
+#   random_forest (S1)            the bar to beat (S1 baseline, basic features)
+#   v1_quorum                     continuous 2-of-4 vote, threshold chosen honestly
+#   v1_quorum:fixed_vote          paper 1's own rule: each detector at its 95th
+#                                 percentile, alarm when 2 of 4 agree (not tuned)
+#   v1_quorum:<detector>          each of the four detectors on its own
+#   v1_ensemble                   RF + XGBoost + SVM, weights 0.35 / 0.40 / 0.25
+#   v1_ensemble:<model>           each classifier on its own
+#   v1_ensemble_basic / _nocoh    feature ablation: S1 features / rich without coherence
+extends: s1_baselines
+run_name: s2_v1_port
+title: Paper-1 models on streaming data
+
+evaluate:
+  signals:
+    - random_forest
+    - {name: v1_quorum, params: {features: rich}}
+    - {name: v1_ensemble, params: {features: rich}}
+    - {name: v1_ensemble, label: v1_ensemble_nocoh, params: {features: rich_nocoh}, parts: false}
+    - {name: v1_ensemble, label: v1_ensemble_basic, params: {features: basic}, parts: false}

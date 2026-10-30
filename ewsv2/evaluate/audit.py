@@ -12,7 +12,10 @@ Config (``evaluate:`` section)::
       merge_gap: 5             # alarm runs closer than this form one episode
       max_episode_minutes: 60  # a false alarm left on counts again every 60 min
       bootstrap: 1000          # resamples for 95% intervals (honest protocols only)
-      signals: [rolling_zscore, {name: random_forest, params: {n_estimators: 100}}]
+      signals:
+        - rolling_zscore
+        - {name: random_forest, params: {n_estimators: 100}}
+        - {name: v1_ensemble, label: v1_ensemble_basic, params: {features: basic}, parts: false}
       protocols:
         - name: D_honest
           label: "Official test period, threshold from cross-validation"
@@ -54,30 +57,44 @@ SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#6250d6"]
 MARKERS = ["o", "s", "D", "^", "v"]
 
 
-def _signal_specs(items) -> list[tuple[str, dict]]:
+def _signal_specs(items) -> list[tuple[str, dict, str, bool]]:
+    """(name, params, label, report_parts) for each configured signal."""
     specs = []
     for it in items:
         if isinstance(it, str):
-            specs.append((it, {}))
+            specs.append((it, {}, it, True))
         else:
-            specs.append((it["name"], dict(it.get("params") or {})))
+            specs.append((it["name"], dict(it.get("params") or {}), it.get("label", it["name"]),
+                          bool(it.get("parts", True))))
+    labels = [s[2] for s in specs]
+    dup = {x for x in labels if labels.count(x) > 1}
+    if dup:
+        raise ValueError(f"signal labels must be unique; give each a 'label:' ({sorted(dup)})")
     return specs
 
 
+def _parts_of(model, Z: pd.DataFrame) -> pd.DataFrame:
+    """All scores a signal reports: its own first, then its components (if any)."""
+    if hasattr(model, "score_parts"):
+        return model.score_parts(Z)
+    return model.score(Z).to_frame(name="main")
+
+
 def _scores_for(ds: Dataset, split, name: str, params: dict, Z: pd.DataFrame, y: np.ndarray, seed: int,
-                use_folds: bool = True):
+                use_folds: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Final test scores (model fitted on ``split.fit``) and threshold-selection scores.
 
-    With cross-validation folds (and ``use_folds``), selection scores are out-of-fold:
-    every pre-test minute is scored by a model that never saw it.
+    Both are DataFrames with one column per reported part. With cross-validation folds
+    (and ``use_folds``), selection scores are out-of-fold: every pre-test minute is
+    scored by a model that never saw it.
     """
     def fresh():
         return build("signal", name, sensors=ds.sensors, seed=seed, **params)
 
     final = fresh().fit(Z[split.fit], y[split.fit])
-    scores = final.score(Z).to_numpy()
+    scores = _parts_of(final, Z)
     if split.folds and use_folds:
-        oof = np.full(len(y), np.nan)
+        oof = pd.DataFrame(np.nan, index=scores.index, columns=scores.columns)
         for fit_k, val_k in split.folds:
             if not val_k.any():
                 continue
@@ -85,7 +102,8 @@ def _scores_for(ds: Dataset, split, name: str, params: dict, Z: pd.DataFrame, y:
             if getattr(model, "supervised", False) and y[fit_k].sum() == 0:
                 continue  # no events to learn from in this fold
             model.fit(Z[fit_k], y[fit_k])
-            oof[val_k] = model.score(Z[val_k]).to_numpy()
+            part = _parts_of(model, Z[val_k])
+            oof.loc[val_k, part.columns] = part.to_numpy()
         return scores, oof
     return scores, scores
 
@@ -113,7 +131,7 @@ def run_protocols(ds: Dataset, cfg: dict, out_dir: Path) -> pd.DataFrame:
         log.info("Protocol %s: %s %s", proto["name"], split.description, split.sizes())
         honest = not split.leaky and on == "val"
 
-        for name, params in specs:
+        for name, params, label, report_parts in specs:
             t0 = time.perf_counter()
             key = f"{name}:{json.dumps(params, sort_keys=True)}"
             probe = build("signal", name, sensors=ds.sensors, seed=seed, **params)
@@ -121,34 +139,43 @@ def run_protocols(ds: Dataset, cfg: dict, out_dir: Path) -> pd.DataFrame:
                 cache[key] = probe.transform(ds.frame)
             Z = cache[key]
             if getattr(probe, "supervised", False) and y[split.fit].sum() == 0:
-                log.warning("Skipping %s under %s: no labelled events in the fit rows", name, proto["name"])
+                log.warning("Skipping %s under %s: no labelled events in the fit rows", label, proto["name"])
                 continue
             scores, select_scores = _scores_for(ds, split, name, params, Z, y, seed, use_folds=(on == "val"))
-            rows_for_t = split.test if on == "test" else split.val
-            thr, sel_value = select_threshold(select_scores, y, idx, rows_for_t, th.get("objective", "event_f1"),
-                                              tol, gap, max_ep)
-            alarm = to_alarm(scores, thr)
-            metrics = evaluate_all(y, alarm, idx, split.test, tol, gap, max_ep)
-            row = {
-                "protocol": proto["name"], "protocol_label": proto.get("label", proto["name"]),
-                "leaky_split": split.leaky, "threshold_on": on, "honest": honest,
-                "headline_metric": proto.get("headline", "event_f1"),
-                "signal": name, "threshold": thr, "selection_value": sel_value, **metrics,
-                "seconds": round(time.perf_counter() - t0, 1),
-            }
-            row["headline_value"] = row[row["headline_metric"]]
-            if honest and n_boot > 0:
-                evaluator = EventEvaluator(y, idx, split.test, tol, gap, max_ep)
-                res = evaluator.evaluate(alarm)
-                ci = bootstrap_ci(res, evaluator.normal_minutes_by_day, n_boot, seed)
-                for k, (lo, hi) in ci.items():
-                    row[f"{k}_lo"], row[f"{k}_hi"] = lo, hi
-                pe = res.per_event.assign(protocol=proto["name"], signal=name)
-                per_event_frames.append(pe)
-            rows.append(row)
-            log.info("  %-17s %5.1fs  %s=%.3f  event recall=%.2f  false alarms/day=%.2f",
-                     name, row["seconds"], row["headline_metric"], row["headline_value"],
-                     row["event_recall"], row["false_alarms_per_day"])
+            fit_seconds = round(time.perf_counter() - t0, 1)
+            fixed = getattr(probe, "fixed_thresholds", {}) or {}
+            columns = list(scores.columns) if report_parts else list(scores.columns[:1])
+            for j, part in enumerate(columns):
+                row_name = label if j == 0 else f"{label}:{part}"
+                s_final = scores[part].to_numpy()
+                if part in fixed:
+                    thr, sel_value, how = float(fixed[part]), float("nan"), "fixed"
+                else:
+                    rows_for_t = split.test if on == "test" else split.val
+                    thr, sel_value = select_threshold(select_scores[part].to_numpy(), y, idx, rows_for_t,
+                                                      th.get("objective", "event_f1"), tol, gap, max_ep)
+                    how = on
+                alarm = to_alarm(s_final, thr)
+                metrics = evaluate_all(y, alarm, idx, split.test, tol, gap, max_ep)
+                row = {
+                    "protocol": proto["name"], "protocol_label": proto.get("label", proto["name"]),
+                    "leaky_split": split.leaky, "threshold_on": how, "honest": honest,
+                    "headline_metric": proto.get("headline", "event_f1"),
+                    "signal": row_name, "model": name, "part": part, "threshold": thr,
+                    "selection_value": sel_value, **metrics, "seconds": fit_seconds if j == 0 else 0.0,
+                }
+                row["headline_value"] = row[row["headline_metric"]]
+                if honest and n_boot > 0:
+                    evaluator = EventEvaluator(y, idx, split.test, tol, gap, max_ep)
+                    res = evaluator.evaluate(alarm)
+                    ci = bootstrap_ci(res, evaluator.normal_minutes_by_day, n_boot, seed)
+                    for k, (lo, hi) in ci.items():
+                        row[f"{k}_lo"], row[f"{k}_hi"] = lo, hi
+                    per_event_frames.append(res.per_event.assign(protocol=proto["name"], signal=row_name))
+                rows.append(row)
+                log.info("  %-28s %5.1fs  %s=%.3f  event recall=%.2f  false alarms/day=%.2f",
+                         row_name, row["seconds"], row["headline_metric"], row["headline_value"],
+                         row["event_recall"], row["false_alarms_per_day"])
 
     results = pd.DataFrame(rows)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -174,8 +201,41 @@ def _ci(row, key, nd=2):
     return f"{_fmt(row[key], nd)} [{_fmt(lo, nd)}–{_fmt(hi, nd)}]"
 
 
+def plot_single(results: pd.DataFrame, path: Path, title: str) -> None:
+    """One protocol: models sorted by score, value printed beside each mark."""
+    r = results.sort_values("headline_value")
+    metric = HEADLINE_NAMES.get(r["headline_metric"].iloc[0], r["headline_metric"].iloc[0])
+    fig, ax = plt.subplots(figsize=(9, 0.38 * len(r) + 1.2), facecolor=SURFACE)
+    ax.set_facecolor(SURFACE)
+    for side in ("top", "right", "left"):
+        ax.spines[side].set_visible(False)
+    ax.spines["bottom"].set_color(GRID)
+    ax.grid(axis="x", color=GRID, linewidth=0.6)
+    ax.set_axisbelow(True)
+    y = np.arange(len(r))
+    ax.hlines(y, 0, r["headline_value"], color=GRID, linewidth=2, zorder=1)
+    ax.scatter(r["headline_value"], y, s=60, color=SERIES[0], edgecolor=SURFACE, linewidth=1.5, zorder=3)
+    for yi, (_, row) in zip(y, r.iterrows()):
+        ax.text(row["headline_value"] + 0.015, yi, f"{row['headline_value']:.2f}  "
+                f"({int(row['detected'])}/{int(row['events'])} events, {row['false_alarms_per_day']:.2f} FA/day)",
+                va="center", fontsize=7.5, color=INK_2)
+    ax.set_yticks(y, r["signal"], fontsize=9, color=INK)
+    ax.tick_params(axis="x", colors=INK_2, labelsize=8)
+    ax.tick_params(axis="y", length=0)
+    ax.set_xlim(0, 1.25)
+    ax.set_xticks(np.linspace(0, 1, 6))
+    ax.set_xlabel(f"{metric}, honest protocol (0–1)", color=INK_2, fontsize=9)
+    ax.set_title(title, loc="left", color=INK, fontsize=11)
+    fig.tight_layout()
+    fig.savefig(path, dpi=140, facecolor=SURFACE, bbox_inches="tight")
+    plt.close(fig)
+
+
 def plot_audit(results: pd.DataFrame, path: Path, title: str) -> None:
     protos = list(dict.fromkeys(results["protocol"]))
+    if len(protos) == 1:
+        plot_single(results, path, title)
+        return
     signals = list(dict.fromkeys(results["signal"]))
     fig, ax = plt.subplots(figsize=(9, 0.55 * len(signals) + 1.9), facecolor=SURFACE)
     ax.set_facecolor(SURFACE)
@@ -207,7 +267,7 @@ def plot_audit(results: pd.DataFrame, path: Path, title: str) -> None:
     ax.set_xlim(-0.02, 1.02)
     ax.set_xlabel("score each protocol would report (0–1)", color=INK_2, fontsize=9)
     ax.set_title(title, loc="left", color=INK, fontsize=11)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.16 - 0.01 * len(signals)), ncol=1,
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=1,
               frameon=False, fontsize=8, labelcolor=INK_2)
     fig.tight_layout()
     fig.savefig(path, dpi=140, facecolor=SURFACE, bbox_inches="tight")
@@ -305,5 +365,6 @@ def write_report(ds: Dataset, cfg: dict, results: pd.DataFrame, out_dir: Path) -
     if results["honest"].any() and (~results["honest"]).any():
         title = f"{title} ({ds.name}): honest scores (black) sit well below what shortcuts report"
     else:
-        title = f"{title}: {ds.name}"
+        best = results.loc[results["headline_value"].idxmax()]
+        title = f"{title} ({ds.name}): best is {best['signal']} at {best['headline_value']:.2f}"
     plot_audit(results, out_dir / "audit.png", title)

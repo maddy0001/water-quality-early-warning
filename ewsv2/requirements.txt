@@ -12,3 +12,6 @@ pytest>=8.0
 
 # S1 – evaluation, baselines (Isolation Forest, Random Forest)
 scikit-learn>=1.4,<1.6
+
+# S2 – paper-1 classifier ensemble (CPU-only build: 2 MB instead of 125 MB; same API)
+xgboost-cpu>=2.0,<3
