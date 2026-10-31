@@ -33,8 +33,8 @@ ROLES: dict[str, str] = {
     "Trueb": "turbidity", "Tp": "temperature", "Fm": "flow", "Fm_2": "flow",
     # GECCO 2019
     "Cond": "conductivity", "Turb": "turbidity", "SAC": "organics", "PFM": "flow",
-    # ESP32 node (S8)
-    "TDS": "conductivity", "Temp": "temperature",
+    # Arduino live demo (S8/S9): the probe in a glass of water behaves like a conductivity sensor
+    "Probe": "conductivity", "TDS": "conductivity", "Temp": "temperature",
 }
 
 # Roles that a sensor fault may hit (flows are process, not quality, sensors).

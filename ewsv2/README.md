@@ -2,7 +2,7 @@
 
 *Is it the water or the sensor?* Calibrated, leakage-free triage of drinking-water
 quality alarms on public utility data (GECCO 2018/2019), with explanations, a local
-LLM incident reporter, and an ESP32 edge version.
+LLM incident reporter, and an Arduino Uno edge version (every hardware part optional).
 
 Version 1 (paper 1, ICESC 2026) is the code at the repository root and is tagged `v1.0`.
 Nothing here imports or changes it.
@@ -31,7 +31,8 @@ python -m pytest ewsv2\tests -q
 | `fusion/`, `calibrate/` | fusion of the paper-1 modules (hand, equal, max, stacking); cross-conformal scores; false-alarm budget (fixed and adaptive) | S5 |
 | `explain/` | explainers checked against known answers (deviation, forecast residual, TreeSHAP, occlusion); station transfer | S6 |
 | `llm/` | alarm records, WHO-grounded incident reports (template / local LLM via Ollama), automatic fact check | S7 |
-| `edge/` | ESP32 export and firmware | S8 |
+| `edge/` | Uno-sized edge algorithm (Python reference), model export, Arduino sketch, PC build, simulated Uno, USB replay, board detection | S8 |
+| `hardware/` | wiring guide, hardware check sketch and guide | S8 |
 | `app/` | v2 dashboard pages | S9 |
 | `configs/` | experiment configs | all |
 | `docs/` | `SEGMENT_XX.md`, one per segment | all |
@@ -59,6 +60,8 @@ python -m ewsv2 fuse     --config s5_fusion    [--set data.source=gecco2019]
 python -m ewsv2 explain  --config s6_explain   [--set data.source=gecco2019]   # after fuse
 python -m ewsv2 transfer --config s6_explain   # train on 2018, run on 2019
 python -m ewsv2 report   --config s7_reports   [--set data.source=gecco2019]   # needs Ollama for the LLM part
+python -m ewsv2 board                                  # finds the Arduino, says which sensors answer
+python -m ewsv2 edge     --config s8_edge      [--set data.source=gecco2019]   # Uno found automatically if plugged in
 python -m ewsv2 run --config full_pipeline
 ```
 

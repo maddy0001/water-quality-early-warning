@@ -14,6 +14,8 @@ fuse --config NAME         fusion + calibration under a false-alarm budget (s5_f
 explain --config NAME      explanations checked against known answers (s6_explain; run fuse first)
 transfer --config NAME     train on GECCO 2018, run on GECCO 2019 (s6_explain)
 report --config NAME       incident reports by a local LLM, fact-checked (s7_reports)
+edge --config NAME         Arduino Uno edge: reference, PC build, simulated Uno, USB replay (s8_edge)
+board [--config s8_edge]   find the Arduino, say which sensors answer and what the system will use
 run --config NAME          run the pipeline steps built so far
 
 ``--set key=value`` overrides any config value, e.g.
@@ -51,7 +53,16 @@ def _load_dataset(cfg: dict):
     data = cfg["data"]
     source = build("source", data["source"], **(data.get("params") or {}))
     t0 = time.perf_counter()
-    ds = source.load()
+    try:
+        ds = source.load()
+    except FileNotFoundError as exc:
+        fallback = data.get("fallback")
+        if not fallback:
+            raise
+        print(f"! {data['source']} data not found – using the '{fallback}' source instead "
+              f"(results are about that source, not about {data['source']}).\n  ({str(exc).splitlines()[0]})")
+        source = build("source", fallback, **(data.get("fallback_params") or {}))
+        ds = source.load()
     log.info("Loaded %s in %.1f s: %s", data["source"], time.perf_counter() - t0, ds)
     return ds
 
@@ -255,6 +266,65 @@ def cmd_report(args) -> int:
     return 0
 
 
+def cmd_edge(args) -> int:
+    from ewsv2.edge.run import run_edge_experiment
+
+    cfg = load_config(args.config, parse_overrides(args.set))
+    ds = _load_dataset(cfg)
+    out = output_dir(cfg["run_name"], ds.name)
+    t0 = time.perf_counter()
+    res = run_edge_experiment(ds, cfg, out)
+    r, info = res["results"], res["info"]
+    m, u = info["model"], info.get("uno_sizes") or {}
+    print(f"\nEdge algorithm on {ds.name} ({time.perf_counter() - t0:.0f} s): {m.get('params')} weights, "
+          f"int8 {m.get('int8_bytes')} B, float32 {m.get('float32_bytes')} B, TFLite int8 {m.get('tflite_int8_bytes', '-')} B")
+    if u:
+        print(f"Uno firmware: {u.get('flash_bytes')} B flash of 32256, {u.get('ram_static_bytes')} B RAM of 2048 before the stack")
+    print(f"  {'system':<44} {'real':>7} {'contam.':>8} {'faults->sensor':>14} {'->water':>7} {'waterFA/d':>9} "
+          f"{'sensorFA/d':>10}")
+    for _, x in r.iterrows():
+        print(f"  {x['system']:<44} {int(x['real_caught']):>3}/{int(x['real_n']):<3} {int(x['contaminant_caught']):>4}/"
+              f"{int(x['contaminant_n']):<3} {int(x['fault_correct']):>10}/{int(x['fault_n']):<3} "
+              f"{int(x['fault_raised_water_alarm']):>7} {x['water_false_alarms_per_day']:>9.2f} "
+              f"{x['false_sensor_alerts_per_day']:>10.2f}")
+    q = info["int8_vs_float32"]
+    print(f"  int8 vs float32: alarm agreement {q['alarm_agreement_int8_vs_float32']:.5f}")
+    print("\nTargets (each answer compared with the laptop's reference, minute by minute):")
+    for target, h in info["hil"].items():
+        if "agreement" not in h:
+            print(f"  {target:<8} {h.get('status')}")
+            continue
+        a, d = h["agreement"], h["device"]
+        ram = f", RAM never used {d['free_ram']} B" if d.get("free_ram", -1) >= 0 else ""
+        print(f"  {target:<8} {h['minutes']} min: alarm {a.get('alarm_agreement', 0):.5f} water {a.get('water_agreement', 0):.5f} "
+              f"sensor {a.get('sensor_agreement', 0):.5f} top {a.get('top_agreement', 0):.5f} | bit-identical "
+              f"{a.get('logit_bit_identical', 0):.5f} | {d.get('mean_us', 0):.0f} us/min (max {d.get('max_us', 0)}), "
+              f"state {d.get('state_bytes')} B{ram}, {d.get('round_trip_ms', 0):.1f} ms round trip")
+        if h["status"] != "ok":
+            print(f"           {h['status']} – the laptop's answers stand for the rest")
+    print(f"\nReport : {out / 'report.md'}")
+    return 0
+
+
+def cmd_board(args) -> int:
+    from ewsv2.edge.board import detect
+
+    cfg = load_config(args.config, parse_overrides(args.set))
+    e, b = cfg.get("edge") or {}, cfg.get("board") or {}
+    print("Looking for the Arduino ...")
+    res = detect(e.get("port", "auto"), int(e.get("baud", 115200)), int(b.get("readings", 3)))
+    print(f"  {res['message']}")
+    if res["board"]:
+        print("  parts: " + ", ".join(f"{k} {'yes' if v else 'no'}" for k, v in res["parts"].items()))
+        for r in res["readings"]:
+            dht = f"{r['temperature_c']} C, {r['humidity_pct']} %" if r["dht_status"] == 0 else "no answer"
+            print(f"  probe {r['probe']:>4} (off {r['probe_off']}) | DHT11 {dht} | touches {r['touches']}")
+    print("\nWhat the system will use:")
+    for k, v in res["choice"].items():
+        print(f"  {k:<6} {v}")
+    return 0
+
+
 def cmd_inject(args) -> int:
     from ewsv2.triage.run import build_benchmark
 
@@ -313,10 +383,15 @@ def build_parser() -> argparse.ArgumentParser:
         ("explain", cmd_explain, "explanations checked against known answers"),
         ("transfer", cmd_transfer, "train on one station, run on another"),
         ("report", cmd_report, "incident reports by a local LLM, fact-checked"),
+        ("edge", cmd_edge, "Arduino Uno edge: reference, PC build, simulated Uno, USB replay"),
+        ("board", cmd_board, "find the Arduino and say which sensors answer"),
         ("run", cmd_run, "run the pipeline steps built so far"),
     ):
         c = sub.add_parser(name, help=helptext)
-        c.add_argument("--config", required=True, help="config name in ewsv2/configs or a path")
+        if name == "board":
+            c.add_argument("--config", default="s8_edge", help="config name (default s8_edge)")
+        else:
+            c.add_argument("--config", required=True, help="config name in ewsv2/configs or a path")
         c.add_argument("--set", action="append", metavar="KEY=VALUE", help="override a config value")
         c.set_defaults(func=func)
     return p

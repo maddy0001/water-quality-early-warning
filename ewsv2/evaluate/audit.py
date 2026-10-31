@@ -359,7 +359,7 @@ def write_report(ds: Dataset, cfg: dict, results: pd.DataFrame, out_dir: Path) -
               "- **Point F1**: every minute is a sample. **Point-adjusted F1**: an event counts as fully "
               "found if any one of its minutes is flagged (common in papers; inflates scores).",
               "- Minutes with no data are never scored and never count as normal time.",
-              "", f"Raw numbers: `results.csv`; per-event hits and delays: `per_event.csv`."]
+              "", "Raw numbers: `results.csv`; per-event hits and delays: `per_event.csv`."]
     (out_dir / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     title = cfg.get("title", "Evaluation")
     if results["honest"].any() and (~results["honest"]).any():

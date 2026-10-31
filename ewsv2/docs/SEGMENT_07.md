@@ -1,6 +1,6 @@
 # Segment 07 – Incident reports by a local LLM, fact-checked
 
-**Status:** code done and verified; the LLM numbers come from **your laptop** (see section 5) · **Builds on:** S4 (triage), S5 (pipeline alarms), S6 (deviation explainer) · **Feeds:** S9 (dashboard)
+**Status:** done; the LLM numbers were measured on **your laptop** (section 5) · **Builds on:** S4 (triage), S5 (pipeline alarms), S6 (deviation explainer) · **Feeds:** S9 (dashboard)
 **Proves:** contribution **C8** (an LLM in the control room whose every fact is checked)
 
 ## 1. Goal
@@ -136,32 +136,50 @@ template reports, and prints why the LLM was skipped.
 Reports: `outputs_v2\s7_reports\gecco2018\report.md` (summary table and one example per reporter),
 `reports.json` (every report with its record and errors).
 
-## 5. Expected output
+## 5. Results
 
-**The cloud machine cannot download models** (its network only reaches package registries), so the
-LLM rows exist only on your laptop. What is verified in the cloud:
+The cloud machine cannot download models (its network only reaches package registries), so the
+LLM rows were measured on your laptop (CPU, Ollama, temperature 0, seed 42):
 
 ```
 Incident reports on gecco2018: 166 alarm records, 33 reported
-  reporter               faithful  err/rep decision  time number sensor  cite top sensor
-  template                   1.00     0.00     0.00  0.00   0.00   0.00  0.00       1.00
+  reporter               faithful  err/rep decision  time number sensor  cite top sensor   sec
+  template                   1.00     0.00     0.00  0.00   0.00   0.00  0.00       1.00   0.0
+  ollama:qwen2.5:3b          1.00     0.00     0.00  0.00   0.00   0.00  0.00       1.00   5.3
+  ollama:llama3.2:3b         1.00     0.00     0.00  0.00   0.00   0.00  0.00       1.00   7.6
+
 Incident reports on gecco2019: 61 alarm records, 27 reported
-  template                   1.00     0.00     0.00  0.00   0.00   0.00  0.00       1.00
+  template                   1.00     0.00     0.00  0.00   0.00   0.00  0.00       1.00   0.0
+  ollama:qwen2.5:3b          0.96     0.04     0.00  0.00   0.04   0.00  0.00       1.00   6.6
 ```
 
-The template is faithful by construction – the check that the checker does not raise false errors on
-correct text. On your laptop a line `ollama:qwen2.5:3b` follows. What to read in it:
+(qwen2.5:3b on 2018 took 6.5 s per report in the first run and 5.3 s in the second, with the model
+already loaded; the reports themselves were the same.)
 
-- **faithful** – share of LLM reports with no error at all. This is the headline number of C8; the
-  guarded output shows exactly this share of LLM reports and the template for the rest.
+What the numbers say:
+
+1. **C8 – a 3-billion-weight model on a laptop CPU writes faithful reports.** 59 of 60 qwen2.5:3b
+   reports (2018 + 2019) have no error of any kind; llama3.2:3b is 33/33 on 2018. Every report names
+   the sensor that moved most.
+2. **The one error was a number.** On 2019 one report contained a value that is neither in the record
+   nor in the cited guidance. The checker caught it, so the operator saw the template report for that
+   alarm: the guarded output had **zero** errors on both datasets.
+3. **Cost:** about 5–8 s per report on a laptop CPU, far below the minutes an alarm episode lasts;
+   the template is instant and is the fallback when the LLM is off.
+
+The template is faithful by construction – the check that the checker does not raise false errors on
+correct text. What the columns mean:
+
+- **faithful** – share of LLM reports with no error at all; the guarded output shows exactly this
+  share of LLM reports and the template for the rest.
 - the error columns – which kind of mistake the model makes (numbers it computed itself, times it
   rewrote, sensors it guessed, citations it made up);
 - **top sensor** – does the report name the sensor that moved most;
-- **sec** – median seconds per report on your machine.
+- **sec** – median seconds per report.
 
 With temperature 0 and a fixed seed the same model on the same laptop gives the same reports each time.
-Different hardware or Ollama versions can change some words, so LLM numbers are reported as measured
-on your laptop, together with the model name and Ollama version (`ollama --version`).
+Different hardware or Ollama versions can change some words, so LLM numbers are reported as measured,
+with the model name and Ollama version (`ollama --version`).
 
 ## 6. Check it worked
 

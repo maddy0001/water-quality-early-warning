@@ -192,7 +192,7 @@ def _f(v, nd=2):
 
 def write_report(src, tgt, res, budget, out_dir: Path) -> None:
     L = ["# Transfer GECCO 2018 → GECCO 2019 (E10)", "",
-         f"Common sensors: " + ", ".join(f"{r} ({src.meta['transfer_sensors'][r]} → {tgt.meta['transfer_sensors'][r]})"
+         "Common sensors: " + ", ".join(f"{r} ({src.meta['transfer_sensors'][r]} → {tgt.meta['transfer_sensors'][r]})"
                                          for r in src.sensors) + ".",
          "Each station is put on its own normal scale using its pre-test minutes only (no labels).", "",
          f"Scored on the 2019 official test period ({int(res['events'].iloc[0])} real events), budget "

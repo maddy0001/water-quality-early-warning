@@ -1,6 +1,5 @@
 """Alarm records, report writers and the fact checker (Segment 7). No LLM needed."""
 
-import numpy as np
 import pandas as pd
 
 from ewsv2.cli import build_parser

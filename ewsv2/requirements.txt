@@ -16,7 +16,10 @@ scikit-learn>=1.4,<1.6
 # S2 – paper-1 classifier ensemble (CPU-only build: 2 MB instead of 125 MB; same API)
 xgboost-cpu>=2.0,<3
 
-# S3 – paper-1 neural forecasters (BiLSTM / GRU with attention); also needed in S8 for the
-# ESP32 model converter. One-time download of about 370 MB on Windows.
+# S3 – paper-1 neural forecasters (BiLSTM / GRU with attention); also used in S8 to train the
+# small edge network (only when a station has no shipped model). One-time download of about 370 MB on Windows.
 tensorflow-cpu>=2.16,<2.19
 ml-dtypes<0.5           # keeps TensorFlow on NumPy 1.26 (newer ml-dtypes needs NumPy 2)
+
+# S8 – talks to the Arduino over USB (optional at run time: without it the board is skipped)
+pyserial>=3.5

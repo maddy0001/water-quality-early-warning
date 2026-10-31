@@ -1,0 +1,1 @@
+{"gecco2018": {"flash_bytes": 20264, "ram_static_bytes": 1153, "arduino_ide_lto_flash_bytes": 20024, "arduino_ide_lto_ram_static_bytes": 1159, "worst_free_ram_bytes": 369, "toolchain": "avr-gcc 7.3.0 + Arduino AVR core, -Os (Arduino IDE adds -flto)"}}

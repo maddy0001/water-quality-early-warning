@@ -142,5 +142,5 @@ def write_report(ds, cfg, records, chosen, summary, texts, status, out_dir: Path
               ""]
     L += ["Files: `alarm_records.json` (every alarm, with what it really was), `reports.json` (every report with "
           "its record and errors), `report_checks.csv`, `report_summary.csv`.",
-          f"", f"Run time: {seconds:.0f} s."]
+          "", f"Run time: {seconds:.0f} s."]
     (out_dir / "report.md").write_text("\n".join(L) + "\n", encoding="utf-8")
