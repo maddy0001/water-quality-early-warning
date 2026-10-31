@@ -13,6 +13,7 @@ inject --config NAME       only write the GECCO-Triage benchmark files
 fuse --config NAME         fusion + calibration under a false-alarm budget (s5_fusion)
 explain --config NAME      explanations checked against known answers (s6_explain; run fuse first)
 transfer --config NAME     train on GECCO 2018, run on GECCO 2019 (s6_explain)
+report --config NAME       incident reports by a local LLM, fact-checked (s7_reports)
 run --config NAME          run the pipeline steps built so far
 
 ``--set key=value`` overrides any config value, e.g.
@@ -229,6 +230,31 @@ def cmd_transfer(args) -> int:
     return 0
 
 
+def cmd_report(args) -> int:
+    from ewsv2.llm.run import run_reports
+
+    cfg = load_config(args.config, parse_overrides(args.set))
+    ds = _load_dataset(cfg)
+    out = output_dir(cfg["run_name"], ds.name)
+    t0 = time.perf_counter()
+    res = run_reports(ds, cfg, out)
+    s = res["summary"]
+    print(f"\nIncident reports on {ds.name} ({time.perf_counter() - t0:.0f} s): "
+          f"{len(res['records'])} alarm records, {int(s['reports'].iloc[0])} reported")
+    for name, why in res["status"].items():
+        if why != "ok":
+            print(f"  ! {name} skipped: {why}")
+    print(f"  {'reporter':<22} {'faithful':>8} {'err/rep':>8} {'decision':>8} {'time':>5} {'number':>6} "
+          f"{'sensor':>6} {'cite':>5} {'top sensor':>10} {'sec':>5}")
+    for _, r in s.iterrows():
+        print(f"  {r['reporter']:<22} {r['faithful_share']:>8.2f} {r['errors_per_report']:>8.2f} "
+              f"{r['with_decision_error']:>8.2f} {r['with_time_error']:>5.2f} {r['with_number_error']:>6.2f} "
+              f"{r['with_sensor_error']:>6.2f} {r['with_citation_error']:>5.2f} {r['mentions_top_sensor']:>10.2f} "
+              f"{r['median_seconds']:>5.1f}")
+    print(f"\nReport : {out / 'report.md'}")
+    return 0
+
+
 def cmd_inject(args) -> int:
     from ewsv2.triage.run import build_benchmark
 
@@ -286,6 +312,7 @@ def build_parser() -> argparse.ArgumentParser:
         ("fuse", cmd_fuse, "fusion and calibration under a false-alarm budget"),
         ("explain", cmd_explain, "explanations checked against known answers"),
         ("transfer", cmd_transfer, "train on one station, run on another"),
+        ("report", cmd_report, "incident reports by a local LLM, fact-checked"),
         ("run", cmd_run, "run the pipeline steps built so far"),
     ):
         c = sub.add_parser(name, help=helptext)

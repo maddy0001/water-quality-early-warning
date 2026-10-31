@@ -1,0 +1,15 @@
+# Segment 7 – incident reports by a local LLM, checked against the alarm record (C8).
+#   python -m ewsv2 report --config s7_reports                               (needs S5 run first)
+#   python -m ewsv2 report --config s7_reports --set data.source=gecco2019
+#   python -m ewsv2 report --config s7_reports --set llm.enabled=false       (template only)
+extends: s5_fusion
+run_name: s7_reports
+title: Incident reports
+
+llm:
+  enabled: true
+  host: http://localhost:11434      # Ollama's default address
+  models: [qwen2.5:3b]              # e.g. [qwen2.5:3b, llama3.2:3b] to compare two models
+  max_tokens: 300
+  max_reports: 40                   # balanced sample of the test-period alarms
+  alarms_from: s5_fusion

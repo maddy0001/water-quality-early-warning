@@ -51,6 +51,7 @@ _PLUGIN_PACKAGES = (
     "ewsv2.fusion",
     "ewsv2.calibrate",
     "ewsv2.explain",
+    "ewsv2.llm",
 )
 
 _REGISTRY: dict[str, dict[str, Any]] = {kind: {} for kind in KINDS}

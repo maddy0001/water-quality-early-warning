@@ -30,7 +30,7 @@ python -m pytest ewsv2\tests -q
 | `inject/`, `triage/` | GECCO-Triage benchmark (contaminant signatures, sensor faults), water-vs-sensor decision | S4 |
 | `fusion/`, `calibrate/` | fusion of the paper-1 modules (hand, equal, max, stacking); cross-conformal scores; false-alarm budget (fixed and adaptive) | S5 |
 | `explain/` | explainers checked against known answers (deviation, forecast residual, TreeSHAP, occlusion); station transfer | S6 |
-| `llm/` | local LLM reporter and assistant | S7 |
+| `llm/` | alarm records, WHO-grounded incident reports (template / local LLM via Ollama), automatic fact check | S7 |
 | `edge/` | ESP32 export and firmware | S8 |
 | `app/` | v2 dashboard pages | S9 |
 | `configs/` | experiment configs | all |
@@ -58,6 +58,7 @@ python -m ewsv2 inject   --config s4_triage    # write the GECCO-Triage benchmar
 python -m ewsv2 fuse     --config s5_fusion    [--set data.source=gecco2019]
 python -m ewsv2 explain  --config s6_explain   [--set data.source=gecco2019]   # after fuse
 python -m ewsv2 transfer --config s6_explain   # train on 2018, run on 2019
+python -m ewsv2 report   --config s7_reports   [--set data.source=gecco2019]   # needs Ollama for the LLM part
 python -m ewsv2 run --config full_pipeline
 ```
 
