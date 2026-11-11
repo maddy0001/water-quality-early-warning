@@ -21,25 +21,26 @@ def _lab() -> dict:
 
 
 def render() -> None:
-    ui.hero("Live sensor lab", "The decision logic on a real sensor: the probe in a glass of water. Salt is a "
-            "'contaminant', a pulled fork wire is a 'broken sensor', the touch pad is the operator's 'false alarm' button.")
-    ui.guide("How to run the live demo", [
-        "<b>Uno sensors</b> needs the board on USB with the probe on A0/A2/GND. Without it, pick <b>Simulated probe</b> "
-        "– the buttons then play the part of the glass, the salt and the wires.",
-        "Put the fork in plain water and wait about 40 seconds: the lab first learns what <b>normal</b> looks like "
-        "(<i>calibrating</i>).",
-        "Add a pinch of salt and stir (or press <b>🧂 Add salt</b>): the reading jumps → red <b>WATER QUALITY ALARM</b>.",
-        "Lift the fork out of the water (or <b>✋ Pull probe out</b>): the reading goes to “dry” → yellow "
-        "<b>SENSOR FAULT</b>, not a water alarm. Put it back.",
-        "Touch the touch pad (or press <b>❌ False alarm</b>): the alarm limit goes up – the lab becomes less sensitive, "
-        "like the control room. Press <b>🔄 Re-calibrate</b> after changing the water.",
+    ui.hero("Try the sensors", "A tiny water station on the table: a probe in a glass of water, a touch pad for the "
+            "operator and a room sensor, all on the Arduino. Pollute the water, break the sensor, and watch the "
+            "system tell the difference.", eyebrow="Demo 2 · live sensors", color="green")
+    ui.guide("Try it in 4 steps (about 2 minutes)", [
+        "Put the probe in a glass of plain water (or choose <b>Simulated</b> – no hardware needed). Wait ~40 seconds "
+        "while it <b>learns what normal looks like</b>.",
+        "<b>Add a pinch of salt</b> and stir (or press 🧂). The reading jumps out of the green band → "
+        "🚨 <b>Water alarm</b>: the water changed.",
+        "<b>Lift the probe out</b> of the water (or press ✋). The reading goes to “dry” → 🔧 <b>Sensor problem</b>: "
+        "not a water alarm, a technician's job. Put it back.",
+        "<b>Touch the touch pad</b> (or press ❌) to say “that was a false alarm”: the alarm limit goes up and the "
+        "station becomes less sensitive. 🔄 Re-learn after changing the water.",
     ])
     lab = _lab()
     b = board()
     hw = b is not None and b.connected and b.parts.get("probe", False)
-    c1, c2, c3 = st.columns([1.4, 1, 1.6])
-    choice = c1.segmented_control("Sensor source", ["board", "sim"], default="board" if hw else "sim",
-                                  format_func=lambda x: "Uno sensors" if x == "board" else "Simulated probe")
+    c1, c2, c3 = st.columns([2.3, 0.6, 1.6], vertical_alignment="bottom")
+    choice = c1.segmented_control("Where the readings come from", ["board", "sim"], default="board" if hw else "sim",
+                                  format_func=lambda x: "🔌 Real sensors (Arduino)" if x == "board"
+                                  else "🖥️ Simulated (no hardware)")
     if choice == "board" and not hw:
         c3.warning("No probe on the board right now – using the simulated probe. "
                    + (b.message if b is not None and not b.connected else "Check the probe wires (A0, A2, GND)."), icon="⚠️")
@@ -51,11 +52,11 @@ def render() -> None:
             b.start_polling()
         elif b is not None:
             b.stop_polling()
-    running = c2.toggle("Running", value=True)
+    running = c2.toggle("Live", value=True, help="Switch off to freeze the screen.")
     st.session_state["lab_running"] = running
 
     a1, a2, a3, a4, a5, a6 = st.columns(6)
-    if a1.button("🔄 Re-calibrate", width="stretch", help="Learn 'normal' again (new glass of water)."):
+    if a1.button("🔄 Re-learn normal", width="stretch", help="Learn 'normal' again (new glass of water)."):
         lab["station"] = LiveStation()
     if a2.button("❌ False alarm", width="stretch", help="Same as touching the touch pad."):
         lab["station"].verdict_false_alarm()
@@ -70,7 +71,8 @@ def render() -> None:
         if a6.button("↩ Put it back", width="stretch"):
             sim.put_back()
     else:
-        a3.caption("On the real probe: add salt to the glass, pull a fork wire, touch the pad.")
+        a3.caption("Real sensors: add salt to the glass, lift the probe out, touch the pad.")
+    _kit(b, choice)
 
     @st.fragment(run_every=2.0 if running else None)
     def live() -> None:
@@ -91,8 +93,20 @@ def render() -> None:
 
 def _checklist(station: LiveStation) -> None:
     kinds = {e.kind for e in station.events}
-    ui.checklist([("calibrated", bool(station.unit)), ("water alarm shown", "water" in kinds),
-                  ("sensor fault shown", "sensor" in kinds), ("false alarm given", "verdict" in kinds)])
+    ui.checklist([("1 · learned normal", bool(station.unit)), ("2 · water alarm seen", "water" in kinds),
+                  ("3 · sensor problem seen", "sensor" in kinds), ("4 · false alarm given", "verdict" in kinds)])
+
+
+def _kit(b, choice: str) -> None:
+    """Which real parts answer right now (only when the real sensors are chosen)."""
+    if choice != "board" or b is None:
+        ui.chips([("Simulated probe, touch pad and room sensor", True, "the buttons above play their part")])
+        return
+    p = b.parts if b.connected else {}
+    ui.chips([("Arduino", b.connected, "connected" if b.connected else "not found"),
+              ("Water probe", p.get("probe", False), "A0/A2" if p.get("probe") else "check AO→A0, VCC→A2"),
+              ("Touch pad", p.get("touch", False), "D3" if p.get("touch") else "use the ❌ button"),
+              ("DHT11", p.get("dht", False), "A1" if p.get("dht") else "temperature shows –")])
 
 
 def _view(station: LiveStation, lab: dict) -> None:
@@ -104,21 +118,25 @@ def _view(station: LiveStation, lab: dict) -> None:
     _checklist(station)
     if last["sensor"]:
         open_fault = next((e for e in reversed(station.events) if e.kind == "sensor"), None)
-        ui.banner("sensor", "SENSOR FAULT ALERT", open_fault.text.split("– ", 1)[-1] if open_fault else "")
+        ui.banner("sensor", "Sensor problem – not a water alarm",
+                  open_fault.text.split("– ", 1)[-1] if open_fault else "")
     elif last["water"]:
-        ui.banner("water", "WATER QUALITY ALARM", f"The ion index moved {last['z']:+.1f} units (limit {station.limit:.1f}).")
+        ui.banner("water", "Water alarm – the water changed",
+                  f"The reading moved {abs(last['z']):.1f}× the normal noise (alarm at {station.limit:.1f}×). "
+                  "Salt or pollution in the glass.")
     elif str(last["status"]).startswith("calibrating") or last["status"] == "waiting for water":
-        ui.banner("idle", last["status"].capitalize(), "Put the fork in the glass and wait about 40 seconds.")
+        ui.banner("idle", "Learning what normal looks like …" if str(last["status"]).startswith("calibrating")
+                  else "Waiting for water", "Keep the probe in plain water for about 40 seconds.")
     else:
-        ui.banner("normal", "NORMAL", "The water reading is steady.")
+        ui.banner("normal", "All normal", "The water reading is steady and the sensors are healthy.")
     unit = f"{station.unit:.1f}" if station.unit else "–"
     ui.kpi_row([
-        ("Ion index", "–" if last["ion"] is None else f"{last['ion']}", "1023 − probe reading; salt raises it"),
-        ("Change", f"{last['z']:+.1f}", (f"× normal noise ({unit} counts); alarm at ±{station.limit:.1f}"
+        ("💧 Ion index", "–" if last["ion"] is None else f"{last['ion']}", "probe reading; more salt = higher"),
+        ("📏 Change", f"{last['z']:+.1f}", (f"× normal noise ({unit} counts); alarm at ±{station.limit:.1f}"
                                          if station.unit else "learning the normal noise …")),
-        ("Alarm limit", f"{station.limit:.1f}", "goes up after a false alarm"),
-        ("Temperature", "–" if last["temperature"] is None else f"{last['temperature']:.0f} °C", "DHT11 (air)"),
-        ("Humidity", "–" if last["humidity"] is None else f"{last['humidity']:.0f} %", "DHT11 (air)"),
+        ("🟣 Alarm limit", f"{station.limit:.1f}×", "goes up after each “false alarm” touch"),
+        ("🌡️ Air temperature", "–" if last["temperature"] is None else f"{last['temperature']:.0f} °C", "DHT11"),
+        ("💦 Air humidity", "–" if last["humidity"] is None else f"{last['humidity']:.0f} %", "DHT11"),
     ])
     left, right = st.columns([2.2, 1])
     with left:
@@ -134,7 +152,7 @@ def _view(station: LiveStation, lab: dict) -> None:
             dur = "" if e.end is None else f" · {e.end - e.start:.0f} s"
             html += (f'<div class="logrow">{kind} <b>{time.strftime("%H:%M:%S", time.localtime(e.start))}</b>{dur}<br>'
                      f'<span class="muted">{ui.esc(e.text)}</span></div>')
-        ui.card("Events (latest first)", html or '<span class="muted">No events yet.</span>')
+        ui.card("What happened (latest first)", html or '<span class="muted">Nothing yet.</span>')
     water = [e for e in station.events if e.kind in ("water", "sensor")]
     if water:
         e = water[-1]
@@ -142,7 +160,7 @@ def _view(station: LiveStation, lab: dict) -> None:
         key = (id(e), e.end)
         if key not in lab["reports"]:
             lab["reports"][key] = S.write_report(rec, ["Probe"], False, "", "")
-        st.markdown("**Incident report (template)**")
+        st.markdown("**📝 Incident report for the latest alarm** (template)")
         st.markdown(f'<div class="report">{ui.esc(lab["reports"][key]["template"])}</div>', unsafe_allow_html=True)
 
 

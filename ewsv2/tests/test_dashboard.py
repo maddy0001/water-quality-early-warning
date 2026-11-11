@@ -106,7 +106,7 @@ def test_board_service_without_a_board(monkeypatch):
     assert time.monotonic() - t0 < 2 and "no Arduino" in b.message
 
 
-PAGES = ["overview", "control_room", "live_lab", "results", "reports", "version1", "system"]
+PAGES = ["overview", "how_it_works", "control_room", "live_lab", "results", "reports", "version1", "system"]
 
 
 @pytest.mark.parametrize("page", PAGES)

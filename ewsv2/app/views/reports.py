@@ -10,8 +10,8 @@ from ewsv2.app import ui
 
 
 def render() -> None:
-    ui.hero("Incident reports", "Reports written for real alarms (S7): the template and the local LLM, each next to "
-            "the alarm record it was fact-checked against.")
+    ui.hero("AI incident reports", "Reports for real alarms, written by the plain template and by a small AI on the "
+            "laptop – each shown next to the facts it was checked against.", eyebrow="The proof", color="violet")
     ui.guide('How to read this page', [
         'Each real alarm has two reports: the <b>template</b> (always correct, plain) and the <b>local LLM</b> (nicer to read).',
         'Every number and sensor name in the LLM text is checked against the alarm record; mistakes are listed in red, and such a report is never shown to the operator – the template is shown instead.',

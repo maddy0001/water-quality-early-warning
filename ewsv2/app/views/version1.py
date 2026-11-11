@@ -14,7 +14,8 @@ def render() -> None:
     v1 = S.snapshot()["v1"]
     cfg = S.config()["dashboard"]
     ui.hero("Version 1 – the published system", f"\"An Integrated Machine Learning Framework for Real-Time Water Quality "
-            f"Monitoring\", {v1['venue']}. Version 1 is kept exactly as published; version 2 builds on it.")
+            f"Monitoring\", {v1['venue']}. Version 1 is kept exactly as published; version 2 builds on it.",
+            eyebrow="Paper 1", color="slate")
     ui.guide('How to read this page', [
         'This is paper 1 (ICESC 2026), unchanged. If its own dashboard is running (port 8501) it is shown inside this page.',
         "Below it: how paper 1's parts behaved when tested honestly on real utility data in version 2.",

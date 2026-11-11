@@ -42,17 +42,16 @@ def _board_if(uno: bool):
 
 
 def render() -> None:
-    ui.hero("Control room", "A real drinking-water station replayed minute by minute. The system watches 9 sensors, "
-            "raises alarms, and asks you – the operator – whether each alarm was real.")
-    ui.guide("How to use this page (about 2 minutes)", [
-        "Press <b>⏭ Next alarm</b>. The replay runs on its own until an alarm has happened and finished.",
-        "The <b>question box</b> then asks you: was it a <b>real water problem</b> or a <b>false alarm</b>? "
-        "The <b>answer key</b> under the question tells you what really happened (the system never sees it).",
-        "Answer. If you say <b>false alarm</b>, the dotted <b>alarm line</b> in the first chart moves up: the system "
-        "becomes a little less sensitive. That is how it learns from the operator.",
-        "Colours: <b style='color:#f87171'>red = the water changed</b> (water alarm), "
-        "<b style='color:#fbbf24'>yellow = a sensor looks broken</b> (maintenance, not a water alarm).",
-        "Use <b>▶ Play</b> to watch the minutes go by, and <b>Settings</b> for speed, the Uno and the answer key.",
+    ui.hero("Watch a real station", "Real minute-by-minute data from a drinking-water utility, replayed fast. "
+            "The system watches the sensors, raises alarms, and asks you – the operator – whether each alarm was real.",
+            eyebrow="Demo 1 · real data")
+    ui.guide("Try it in 3 clicks", [
+        "Press <b>⏭ Next alarm</b>. The replay runs by itself until an alarm has happened and finished.",
+        "Read the coloured banner and the <b>Why?</b> chart: 🚨 red = the water changed, 🔧 yellow = a sensor looks "
+        "broken. Then answer the question: <b>Real event</b> or <b>False alarm</b>? The <b>answer key</b> next to "
+        "the buttons tells you what really happened.",
+        "Say <b>False alarm</b> and watch the dotted <b>alarm line</b> step up – the system just learned from you "
+        "and became a little less sensitive. Press ⏭ again for the next one.",
     ])
     cfg = S.config()
     data = S.data_status()
@@ -69,12 +68,12 @@ def render() -> None:
                                         help="You: the replay waits for your answer after each alarm. "
                                              "Automatic: the utility's labels answer, the replay never waits.")
     verdict_mode = verdict_mode or "you"
-    with st.expander("⚙ Settings – speed, Uno, answer key, single steps"):
+    with st.expander("⚙ Settings – speed, Arduino, answer key, single steps"):
         s1, s2, s3, s4 = st.columns([1.4, 1.2, 1.2, 1], vertical_alignment="bottom")
         speed = s1.select_slider("Play speed", options=SPEEDS, value=5, key="cr_speed",
                                  format_func=lambda v: f"{v} min/s",
                                  help="How many minutes of station time pass per second while playing.")
-        uno = s2.toggle("Also run on the Uno", value=False, disabled=not uno_ok, key="cr_uno_toggle",
+        uno = s2.toggle("Also run on the Arduino", value=False, disabled=not uno_ok, key="cr_uno_toggle",
                         help="The Uno computes every minute too and the page checks it gives exactly the same answer. "
                              + ("" if uno_ok else f"Not available now: {b.message if b else 'board switched off'}"))
         reveal = s3.toggle("Show the answer key", value=True, key="cr_reveal",
@@ -189,9 +188,10 @@ def _view(state: S.ReplayState, reveal: bool, uno: bool, mode: str, speed: int) 
                    "line a little; it slowly comes back down over the next day."
                    + (" Shaded = the answer key (red: real water event, yellow: broken sensor)." if reveal else ""))
         st.plotly_chart(_detector_chart(rows, reveal), width="stretch", config=CHART, key="cr_det")
-        ui.explain("The 9 sensors, raw readings of the last 12 hours. ◆ = this sensor failed a health check "
-                   "(stuck, dropped out or spiking) – its reading is not trusted.")
-        st.plotly_chart(_sensor_chart(rows, state), width="stretch", config=CHART, key="cr_sens")
+        with st.expander(f"📈 See all {len(state.sensors)} sensors (raw readings, last 12 hours)"):
+            ui.explain("Each small chart is one sensor. ◆ = this sensor failed a health check (stuck, dropped out or "
+                       "spiking) – its reading is not trusted.")
+            st.plotly_chart(_sensor_chart(rows, state), width="stretch", config=CHART, key="cr_sens")
     with right:
         ui.explain("<b>Why?</b> How far each sensor moved in 15 minutes, compared with its largest normal move. "
                    "A red bar (≥ 1×) is beyond anything seen in normal water.")
@@ -199,7 +199,7 @@ def _view(state: S.ReplayState, reveal: bool, uno: bool, mode: str, speed: int) 
                         key="cr_move")
         if reveal:
             truth = state.truth[rows[-1]["i"]] if rows else ""
-            ui.card("Answer key – right now", f'<span class="muted">{ui.esc(truth or "normal water, healthy sensors")}</span>')
+            ui.card("🔑 Answer key – what is really happening now", f'<span class="muted">{ui.esc(truth or "normal water, healthy sensors")}</span>')
         _episode_log(state, reveal)
 
 
@@ -208,19 +208,20 @@ def _banner(state: S.ReplayState, last: dict) -> None:
     flagged = [names[j] for j in range(len(names)) if last["mask"] >> j & 1]
     if last["water"]:
         top = names[last["top"]]
-        ui.banner("water", "WATER QUALITY ALARM",
+        ui.banner("water", "Water alarm – the water changed",
                   f"{S.SENSOR_NAMES.get(top, top)} moved {last['m'][last['top']]:.1f}× its largest normal 15-minute "
                   "move – the water itself changed"
                   + (f" (a sensor alert is on at the same time: {', '.join(flagged)})" if flagged else "") + ".")
     elif last["sensor"]:
-        ui.banner("sensor", "SENSOR FAULT – check " + ", ".join(flagged),
+        ui.banner("sensor", "Sensor problem – check " + ", ".join(flagged),
                   "This sensor is behaving like a broken sensor, and the other sensors say the water is normal. "
                   "This is a maintenance job, not a water alarm.")
     elif last["alarm"]:
         ui.banner("sensor", "Alarm cancelled – only a suspect sensor moved",
                   "The score crossed the line, but the movement came from a sensor that failed its health check.")
     else:
-        ui.banner("normal", "NORMAL", "All 9 sensors are inside their normal range. Nothing to do.")
+        ui.banner("normal", "All normal", f"All {len(names)} sensors are healthy and the water looks normal. "
+                  "Nothing to do.")
 
 
 def _kpis(state: S.ReplayState, rows: list, reveal: bool, uno: bool) -> None:
@@ -233,23 +234,22 @@ def _kpis(state: S.ReplayState, rows: list, reveal: bool, uno: bool) -> None:
     lifted = theta - theta0 if np.isfinite(theta) else 0.0
     right = sum(a["right"] for a in state.answers)
     ui.kpi_row([
-        ("Water alarms", str(len(water)), (f"{real} on real events · {len(water) - real} false" if reveal
-                                           else "red banner")),
-        ("Sensor alerts", str(len(sensor)), "yellow banner · maintenance"),
-        ("Your answers", f"{right}/{len(state.answers)}" if state.answers else "–",
+        ("🚨 Water alarms", str(len(water)), (f"{real} real · {len(water) - real} false (answer key)" if reveal
+                                              else "red banner")),
+        ("🔧 Sensor alerts", str(len(sensor)), "yellow banner · sent to maintenance"),
+        ("🟣 Your answers", f"{right}/{len(state.answers)}" if state.answers else "–",
          "matching the answer key" if state.answers else "none yet"),
-        ("Alarm line", "–" if not np.isfinite(theta) else f"{theta:+.2f}",
+        ("📏 Alarm line", "–" if not np.isfinite(theta) else f"{theta:+.2f}",
          "at its starting level" if abs(lifted) < 0.05 else
          (f"{lifted:+.2f} vs start · less sensitive" if lifted > 0 else f"{lifted:+.2f} vs start · more sensitive")),
-        ("Uno check", f"{state.uno_same:,}/{state.uno_checked:,}" if uno else "off",
-         state.uno_note or ("minutes identical to the laptop" if uno else "Settings → Also run on the Uno")),
-    ])
+    ] + ([("Arduino check", f"{state.uno_same:,}/{state.uno_checked:,}",
+           state.uno_note or "minutes where the Uno = the laptop")] if uno else []))
 
 
 def _question(state: S.ReplayState, reveal: bool, uno: bool, mode: str) -> None:
     """The question box. Always the same size, so the page below does not jump when a question appears."""
-    with st.container(border=True, height=150):
-        p = state.pending
+    p = state.pending
+    with st.container(border=True, height=150, key="cr_qbox_ask" if p is not None else "cr_qbox"):
         if p is None:
             if mode == "auto":
                 st.markdown("**Question box** · Automatic mode: the utility's labels answer every alarm, so the "
@@ -386,7 +386,7 @@ def _below(state) -> None:
     """Incident report + download. Outside the live area: it changes only when you click something."""
     if state is None:
         return
-    st.subheader("Incident report")
+    st.markdown("### 📝 Incident report")
     eps = state.episodes
     if not eps:
         st.caption("After the first alarm you can write an incident report for it here and download the alarm log.")
@@ -402,8 +402,9 @@ def _below(state) -> None:
               for i, e in enumerate(eps)}
     c1, c2, c3 = st.columns([2, 1.2, 1.2], vertical_alignment="bottom")
     pick = c1.selectbox("Alarm", list(labels)[::-1], format_func=labels.get)
-    use_llm = c2.toggle("Use the local LLM (Ollama)", value=False,
-                        help="Off: the template report (always works). On: the LLM writes it and every fact is checked.")
+    use_llm = c2.toggle("Let the AI write it (Ollama)", value=False,
+                        help="Off: the template report (always works). On: the local AI writes it and every fact is "
+                             "checked; any mistake → the template is shown instead.")
     c3.download_button("⬇ Alarm log (CSV)", _log_frame(state).to_csv(index=False).encode("utf-8"),
                        file_name=f"alarm_log_{state.name}.csv", mime="text/csv", width="stretch")
     rec = S.episode_record(state, eps[pick], f"GECCO station ({state.name})")
@@ -419,7 +420,7 @@ def _below(state) -> None:
         st.markdown(f'<div class="report">{ui.esc(shown)}</div>', unsafe_allow_html=True)
     with b:
         if rep["shown"] == "llm":
-            st.markdown(ui.pill("LLM report · every fact checked", "ok"), unsafe_allow_html=True)
+            st.markdown(ui.pill("AI report · every fact checked", "violet"), unsafe_allow_html=True)
             st.caption(f"{rep['seconds']:.1f} s on this computer")
         else:
             st.markdown(ui.pill("template report", "info"), unsafe_allow_html=True)
@@ -427,5 +428,5 @@ def _below(state) -> None:
                 st.caption(rep["why"])
         if rep["errors"]:
             st.dataframe(pd.DataFrame(rep["errors"]), hide_index=True, width="stretch")
-        with st.expander("The facts the report may use (alarm record)"):
+        with st.expander("The facts the report may use (the alarm record)"):
             st.json(rec, expanded=False)

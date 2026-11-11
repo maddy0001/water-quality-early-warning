@@ -20,8 +20,8 @@ def _row(name: str, ok: bool, now: str, fallback: str, fix: str = "") -> str:
 
 
 def render() -> None:
-    ui.hero("System check", "Every part is optional. This page says which ones are ready on this computer and what the "
-            "system uses instead of the others.")
+    ui.hero("What is connected", "Every part is optional. This page shows which ones are ready on this computer, "
+            "what the system uses instead of the others, and how to fix them.", eyebrow="Setup", color="slate")
     ui.guide('How to read this page', [
         '<b>ready</b> = this part works on this computer now. <b>fallback</b> = it is missing, and the line says what the computer uses instead – the demo still works.',
         'Plug the Uno in or start Ollama, then press “Look for the board again” or “Check the local LLM again”.',
@@ -55,8 +55,10 @@ def render() -> None:
              "the 'False alarm' button on screen", "wires SIG→D3, VCC→D4, GND→GND"),
         _row("DHT11", parts.get("dht", False), "answers" if parts.get("dht") else "not detected",
              "left out", "wires DATA→A1, VCC→5V, GND→GND"),
-        _row("RFID reader", parts.get("rfid", False), "not used yet", "not needed", "optional: needs soldered pins"),
-        _row("Local LLM (Ollama)", llm_ok, "ready" if llm_ok else llm_why, "template reports",
+        _row("RFID reader (not used)", parts.get("rfid", False), "not part of this project", "nothing – it is not needed",
+             "optional: needs soldered pins"),
+        _row("AI writer (Ollama)", llm_ok, "ready" if llm_ok else
+             ("Ollama is not running" if "refused" in str(llm_why).lower() else llm_why), "template reports",
              "start Ollama; ollama pull " + cfg["llm"]["models"][0]),
         _row("Version 1 dashboard", S.url_alive(cfg["dashboard"]["v1_url"]), cfg["dashboard"]["v1_url"],
              "published results on the Version 1 page", "python -m ewsv2 dashboard starts it if venv exists"),

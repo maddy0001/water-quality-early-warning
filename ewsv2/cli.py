@@ -327,8 +327,8 @@ def cmd_board(args) -> int:
     return 0
 
 
-THEME = {"base": "dark", "primaryColor": "#38bdf8", "backgroundColor": "#0a1220",
-         "secondaryBackgroundColor": "#111c2b", "textColor": "#e8eef6"}
+THEME = {"base": "light", "primaryColor": "#2563eb", "backgroundColor": "#f5f7fb",
+         "secondaryBackgroundColor": "#eaf0f8", "textColor": "#0f172a"}
 
 
 def _v1_command(port: int):

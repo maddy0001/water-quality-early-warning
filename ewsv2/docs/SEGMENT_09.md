@@ -6,7 +6,25 @@ S4–S8 · **Feeds:** S10 (hand-over, final diagram, paper tables)
 **Shows:** all contributions in one place, live; experiment **E12** (the Uno answers minute by minute
 next to the laptop in the dashboard)
 
-## 0. Update 9.1 – calmer and clearer (after your first run)
+## 0. Update 9.2 – a friendly dashboard anyone can follow
+
+You said you still could not tell what the dashboard does, what the three sensors are for, or what
+version 2 changed. The dashboard was rebuilt around **questions a visitor asks**, with a bright theme.
+Every function from 9.1 is still there (same replay engine, same live lab, same Uno check, same reports).
+
+| Before | Now |
+|---|---|
+| Dark theme, technical names | Bright light theme. One colour = one meaning on every page: 🟢 all good, 🔴 the **water** changed, 🟡 a **sensor** looks broken, 🟣 you / the AI |
+| Overview full of numbers | **Start here**: the project in one sentence, four big buttons (*How it works*, *Watch a real station*, *Try the sensors*, *See the results*), "Version 2 in 30 seconds", v1 → v2 side by side, and what is connected |
+| Nothing explained the hardware or the LLM | New **How it works** page with tabs: *The idea* (water vs sensor, the smoke-alarm example), *5 steps*, *The hardware* (one card each for the Arduino, water probe, touch pad, DHT11: what it measures, its job in the demo, wires, what replaces it), *The AI writer*, *What's new in v2* (S0–S9, one question and one answer each), *If something is missing*, *Words* (glossary) |
+| "Control room", "Live sensor lab", "System check" | **Watch a real station**, **Try the sensors**, **What is connected**; "Incident reports" → **AI incident reports** |
+| 9 small sensor charts always on screen | Inside a "See all sensors" box; the main screen is banner → 4 cards → question → two charts |
+| Results: tabs of numbers | Each tab starts with **the answer in one bold sentence**; method names in plain words |
+| Live lab: technical banner names | "Water alarm – the water changed", "Sensor problem – not a water alarm", a 4-step checklist, and chips showing which real part answers |
+
+The page names changed, the addresses did not (`/control-room`, `/live-lab` … still work).
+
+## 0a. Update 9.1 – calmer and clearer (after your first run)
 
 You said the dashboard was confusing and "glitched" every time the data changed. Both are fixed:
 
@@ -122,11 +140,11 @@ cd "C:\Users\THE GOD\Documents\Github\water-quality-early-warning"
 venv2\Scripts\Activate.ps1
 
 Remove-Item -Recurse -Force ewsv2
-Expand-Archive -Path "$HOME\Downloads\ewsv2_S9_1.zip" -DestinationPath . -Force
+Expand-Archive -Path "$HOME\Downloads\ewsv2_S9_2.zip" -DestinationPath . -Force
 pip install -r ewsv2\requirements.txt          # adds streamlit, plotly, pyarrow (one time, ~1 min)
 
 python -m ewsv2 info                            # built up to segment S9
-python -m pytest ewsv2\tests -q                 # 140 passed, 4 skipped (cloud: 144 passed)
+python -m pytest ewsv2\tests -q                 # 141 passed, 4 skipped (cloud: 145 passed)
 ```
 
 ### 4b. Upload the updated sketch (one small change: DHT11 timing)
@@ -150,21 +168,23 @@ python -m ewsv2 dashboard --set dashboard.with_v1=false     # only version 2
 
 ### 4d. A 5-minute demo script
 
-1. **Overview**: one sentence per card. "Right now" shows the Uno, the LLM and the data as ready or fallback.
-2. **Control room**: station gecco2018, *You (operator)*.
-   - Press **⏭ Next alarm**. Read the banner and the *Why?* chart (which sensor moved, how far).
-   - The question box asks "real water problem?". Read the **answer key** aloud, answer **False alarm**, and
-     point at the dotted **alarm line** stepping up (the *Alarm line* card says "less sensitive").
-   - **⏭ Next alarm** again until a yellow **SENSOR FAULT** appears: "a maintenance job, not a water alarm".
-   - Settings → **Also run on the Uno**: the *Uno check* card counts *N/N identical*.
-   - **⏸ Pause**, scroll down to **Incident report**. With Ollama running, switch on the LLM to show the fact check.
-   - For the examiners' screen, switch off **Show explanations** in the sidebar.
-3. **Live sensor lab** (probe in a glass of tap water, wait for "Calibrated"):
-   - add a pinch of salt: red WATER QUALITY ALARM;
-   - pull a fork wire: yellow SENSOR FAULT ALERT, no water alarm;
-   - touch the pad: "Operator: false alarm – limit raised".
-4. **Results** → *Leakage audit* (0.98 → 0.64) and *Arduino Uno* (your 10,080 bit-identical minutes).
-5. **Version 1**: paper 1's dashboard inside, and the table of what v2 found about each part.
+1. **Start here** (30 s): read the big header aloud – "is it the water or the sensor?". Point at the four
+   cards of *Version 2 in 30 seconds* and the green/yellow chips of what is connected.
+2. **How it works** (1 min): *The idea* tab (red card vs yellow card), then *The hardware* tab – show
+   the real parts on the table next to their cards.
+3. **Watch a real station** (2 min), station gecco2018, *You (operator)*:
+   - press **⏭ Next alarm**; read the banner and the *Why?* chart;
+   - read the **answer key** in the purple question box, answer **False alarm**, point at the dotted
+     **alarm line** stepping up and the sentence "the alarm line went up by 0.50";
+   - **⏭ Next alarm** until a yellow **Sensor problem** appears: "a technician's job, not a water alarm";
+   - optional: Settings → **Also run on the Arduino**: the *Arduino check* card counts *N/N* identical minutes;
+   - **⏸ Pause** → **Incident report** at the bottom; with Ollama running switch on *Let the AI write it*.
+4. **Try the sensors** (1.5 min), *Real sensors (Arduino)*, probe in tap water, wait for the first tick
+   "learned normal": salt → red water alarm; lift the probe → yellow sensor problem; touch the pad →
+   "false alarm given". All four ticks turn green.
+5. **Results** (30 s): *Honest testing* (0.98 → 0.64) and *Arduino* (your 10,080 identical minutes).
+
+For the examiners' screen you can switch off **Show help boxes** in the sidebar.
 
 Take a few screenshots for the report and send them to me if anything looks wrong.
 
@@ -172,11 +192,11 @@ Take a few screenshots for the report and send them to me if anything looks wron
 
 | Situation | What you see |
 |---|---|
-| Uno plugged in, sketch uploaded, Serial Monitor closed | System check: Arduino Uno *ready*, probe/touch/DHT11 *ready*; Live lab uses "Uno sensors" |
-| No Uno | Live lab uses the simulated probe; Control room's Uno toggle is off; nothing else changes |
-| Probe wire pulled in the Live lab | Yellow SENSOR FAULT ALERT within one reading (~2 s) |
-| Salt in the glass | Red WATER QUALITY ALARM within 2–4 s; it clears once the new level is "normal" |
-| Ollama not running | Reports use the template; System check says how to start Ollama |
+| Uno plugged in, sketch uploaded, Serial Monitor closed | What is connected: Arduino Uno *ready*, probe/touch/DHT11 *ready*; Try the sensors uses "Real sensors (Arduino)" |
+| No Uno | Try the sensors uses the simulated probe; Watch a real station's Uno toggle is off; nothing else changes |
+| Probe wire pulled in the Try the sensors | Yellow Sensor problem within one reading (~2 s) |
+| Salt in the glass | Red Water alarm within 2–4 s; it clears once the new level is "normal" |
+| Ollama not running | Reports use the template; What is connected says how to start Ollama |
 | Version 1 not running | Version 1 page shows its published results and how to start it |
 | GECCO files missing | Station list offers "simulated" only; every page still works |
 | Playing in the control room | Numbers and charts change in place once a second; nothing fades or jumps |
@@ -189,13 +209,13 @@ The control room's Uno check ran against the real firmware on a simulated Uno: 3
 
 - `python -m ewsv2 info` prints `built up to segment S9`.
 - All seven pages open without a red error box.
-- With the Uno: *System check* shows the board and the three sensors as ready.
+- With the Uno: *What is connected* shows the board and the three sensors as ready.
 
 | Problem | Fix |
 |---|---|
 | `Streamlit is missing` | `pip install -r ewsv2\requirements.txt` |
 | `pyarrow requires NumPy 2.0` | `pip install "pyarrow>=19,<23"` (the requirements pin this) |
-| Live lab says "No probe on the board" | Close the Serial Monitor; *System check* → *Look for the board again* |
+| Try the sensors says "No probe on the board" | Close the Serial Monitor; *What is connected* → *Look for the board again* |
 | Port busy / Access denied | Only one program may use COM7: close Arduino IDE's Serial Monitor; do not run `python -m ewsv2 edge` while the dashboard uses the board |
 | Version 1 page empty | Start version 1 by hand (the page shows the commands); it needs its models (`python main.py --train`) |
 | Port 8502 in use | `python -m ewsv2 dashboard --set dashboard.port=8503` |
@@ -216,7 +236,7 @@ the decision logic on a physical sensor. A real change is an alarm, a broken sen
 an operator's "false alarm" makes the system less jumpy. Every case can be repeated in front of the examiners.
 
 **What if something fails during the demo?** That is the design: unplug the Uno and the laptop continues;
-stop Ollama and the template report appears; the System check page says what changed.
+stop Ollama and the template report appears; the What is connected page says what changed.
 
 ## 8. Next segment
 

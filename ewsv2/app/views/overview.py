@@ -1,9 +1,10 @@
-"""Overview: what the system does, the headline results, and what is connected right now."""
+"""Start here: the project in one sentence, where to click, the headline results and what is connected."""
 
 from __future__ import annotations
 
 import streamlit as st
 
+from ewsv2.app import nav
 from ewsv2.app import services as S
 from ewsv2.app import ui
 
@@ -11,77 +12,78 @@ from ewsv2.app import ui
 def render() -> None:
     snap = S.snapshot()
     e = snap["edge"]
-    ui.hero("Water quality early warning – is it the water or the sensor?",
-            "Version 2 of the ICESC 2026 system: tested honestly on real drinking-water data (GECCO 2018/2019), "
-            "it separates water events from broken sensors, keeps a promised false-alarm rate, explains every "
-            "alarm, writes fact-checked reports with a local LLM, and runs on a ₹350 Arduino Uno.")
+    ui.hero("Is it the water, or the sensor?",
+            "Sensors in a drinking-water network report every minute. When a reading suddenly changes there are two "
+            "very different reasons: the water really changed (warn people!) or the sensor broke (send a technician). "
+            "This system tells the two apart, learns from the operator, runs on a ₹350 Arduino and writes the "
+            "incident report.", eyebrow="Water quality early warning · version 2")
+
+    st.markdown("### What would you like to do?")
+    tiles = [
+        ("how-it-works", "💡", "How it works", "The idea in 5 simple steps, what each sensor does, the AI report "
+                                              "writer, and what is new in version 2."),
+        ("control-room", "🎬", "Watch a real station", "Replay real data from a water utility. The system raises "
+                                                      "alarms – you decide whether each one was real."),
+        ("live-lab", "🧪", "Try the sensors", "A probe in a glass of water. Salt = pollution, probe out = broken "
+                                             "sensor, touch pad = “false alarm”."),
+        ("results", "📊", "See the results", "The proof in numbers: version 1 vs version 2, the Arduino test, the "
+                                            "AI reports."),
+    ]
+    for c, (path, emoji, title, text) in zip(st.columns(4), tiles):
+        with c:
+            ui.page_tile(nav.PAGES.get(path), emoji, title, text)
+
+    st.markdown("### Version 2 in 30 seconds")
+    lk = snap["leakage"]
+    tri = snap["triage"]["2018"]
     ui.kpi_row([
-        ("Leakage exposed", f"{snap['leakage']['random_split_event_f1']:.2f} → {snap['leakage']['honest_event_f1']:.2f}",
-         "event F1: random split vs honest"),
-        ("Faults kept out of water alarms", "7 → 1", "GECCO 2018, same detector, with the triage"),
-        ("False alarms / day", "0.97–1.01", "adaptive threshold for a 1/day budget"),
-        ("LLM reports fact-correct", "59 / 60", "qwen2.5:3b on a laptop CPU; checked automatically"),
-        ("Arduino Uno = laptop", f"{e['uno_minutes']:,} min", "bit-identical answers, 25 ms per minute"),
+        ("Honest testing", f"{lk['random_split_event_f1']:.2f} → {lk['honest_event_f1']:.2f}",
+         "Score with the easy test vs the honest test (train on the past, test on the future)."),
+        ("Broken sensors → false water alarms", f"{tri['detector_only']['faults_to_water']} → "
+                                                 f"{tri['rules']['faults_to_water']}",
+         "Faulty sensors are now sent to maintenance instead of alarming the city."),
+        ("False alarms per day", "≈ 1", "Promised and kept: 0.90–1.18 a day on both real test periods."),
+        ("Arduino = laptop", f"{e['uno_minutes']:,} min", "One week of real data: the ₹350 Uno gave exactly the same "
+                                                          "answer every minute."),
+        ("AI reports with no mistake", "59 / 60", "Every number is checked; a report with a mistake is never shown."),
     ])
-    _start_here()
+    st.write("")
     left, right = st.columns([1.35, 1])
     with left:
-        st.subheader("How an alarm is decided")
-        ui.flow([("1 · Sensors", "9 analysers, every minute"), ("2 · Detect", "small network + 3 paper-1 modules"),
-                 ("3 · Budget", "adaptive threshold, ≤ 1 false alarm/day"),
-                 ("4 · Triage", "water event or broken sensor?"), ("5 · Explain", "which sensor moved, how much"),
-                 ("6 · Report", "template or local LLM, fact-checked")])
-        st.write("")
-        st.markdown(
-            "- **Control room** – replay a real station minute by minute, with injected contaminants and sensor faults; "
-            "answer the alarms yourself and watch the threshold adapt. If the Uno is plugged in it computes every "
-            "minute too, and the dashboard shows that its answers match.\n"
-            "- **Live sensor lab** – the probe in a glass of water: add salt for a water event, pull the probe for a "
-            "sensor fault, touch the pad to say *false alarm*. Without the board the same lab runs on a simulated probe.\n"
-            "- **Results**, **Incident reports**, **Version 1** – the evidence, and how paper 1's parts behaved on real data.")
+        st.markdown("### From version 1 to version 2")
+        ui.compare(
+            "Version 1 (paper 1, ICESC 2026)",
+            ["Three separate models on three different datasets",
+             "Tested on shuffled minutes – an easy test",
+             "Every strange reading = “bad water”",
+             "Fixed alarm threshold",
+             "Explanations nobody checked",
+             "Runs on a laptop only"],
+            "Version 2 (this project)",
+            ["One pipeline on real utility data, minute by minute",
+             "Honest test: learn from the past, test on the future",
+             "<b>Water or sensor?</b> Broken sensors go to maintenance",
+             "Alarm line adapts – about 1 false alarm a day, and the operator teaches it",
+             "Explanations tested; AI reports fact-checked",
+             "Same decisions on a ₹350 Arduino Uno"])
     with right:
-        st.subheader("Right now")
+        st.markdown("### Right now on this computer")
         data = S.data_status()
-        ok_llm, why_llm = _llm_status()
-        board = _board_status()
-        rows = [
-            ("GECCO 2018 data", data["gecco2018"], "simulated station is used instead"),
-            ("GECCO 2019 data", data["gecco2019"], "simulated station is used instead"),
-            ("Arduino Uno", board[0], "the laptop runs the same logic"),
-            ("Local LLM (Ollama)", ok_llm, "template reports"),
-            ("Version 1 dashboard", S.url_alive(S.config()["dashboard"]["v1_url"]), "published results shown instead"),
-        ]
-        html = ""
-        for name, ok, fallback in rows:
-            html += (f'<div class="logrow">{ui.pill("ready" if ok else "fallback", "ok" if ok else "warn")} '
-                     f'<b>{ui.esc(name)}</b>' + ("" if ok else f' <span class="muted">– {ui.esc(fallback)}</span>') + "</div>")
-        st.markdown(html, unsafe_allow_html=True)
-        st.caption("Details and fixes: *System check*.")
-
-
-def _start_here() -> None:
-    """Three big entry points, so a first-time viewer knows where to click."""
-    from ewsv2.app import nav
-    st.write("")
-    st.markdown("#### Start here")
-    items = [
-        ("control-room", "1 · Control room", "A real station replayed. Press ⏭ Next alarm, then answer: real or false?"),
-        ("live-lab", "2 · Live sensor lab", "The probe in a glass of water (or simulated): salt → water alarm, "
-                                            "probe out → sensor fault."),
-        ("results", "3 · Results", "The numbers for the report: v1 vs v2, honest testing, the Uno, the LLM."),
-    ]
-    cols = st.columns(len(items))
-    for c, (path, title, text) in zip(cols, items):
-        with c.container(border=True):
-            st.markdown(f"**{title}**")
-            st.caption(text)
-            page = nav.PAGES.get(path)
-            if page is not None:
-                st.page_link(page, label="Open", icon=":material/arrow_forward:")
-    ui.explain("Words used on every page: <b>water alarm</b> (red) = the water itself changed · <b>sensor alert</b> "
-               "(yellow) = a sensor looks broken, maintenance only · <b>alarm line</b> = how high the alarm score must "
-               "go before an alarm; it rises when the operator says “false alarm” · <b>answer key</b> = what really "
-               "happened in the data; shown to you, never to the system.")
+        ok_llm, _ = _llm_status()
+        b_ok, _ = _board_status()
+        ui.chips([
+            ("Real station data", data["gecco2018"] or data["gecco2019"],
+             "ready" if (data["gecco2018"] or data["gecco2019"]) else "using a simulated station"),
+            ("Arduino Uno", b_ok, "connected" if b_ok else "the laptop does its job"),
+            ("AI writer (Ollama)", ok_llm, "ready" if ok_llm else "simple template reports"),
+            ("Version 1 dashboard", S.url_alive(S.config()["dashboard"]["v1_url"]), "on port 8501"
+             if S.url_alive(S.config()["dashboard"]["v1_url"]) else "not running – results shown instead"),
+        ])
+        ui.explain("🟢 = ready. 🟡 = not here, and the computer uses the replacement written next to it. "
+                   "<b>Nothing is required</b> – every page works with or without the board, the sensors, the AI "
+                   "and the data files.")
+        ui.page_tile(nav.PAGES.get("system"), "🔌", "What is connected", "Every part, what replaces it when it is "
+                     "missing, and how to fix it.", label="Check")
 
 
 def _llm_status():
