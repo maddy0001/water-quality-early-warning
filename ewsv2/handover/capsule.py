@@ -35,9 +35,10 @@ from ewsv2.core.paths import REPO_ROOT
 
 LOCK_DIR = Path(__file__).with_name("locks")
 SKIP_DIRS = {"venv", "venv2", "__pycache__", ".pytest_cache", ".ruff_cache", "node_modules", ".ipynb_checkpoints"}
-SKIP_NAMES = {"structure.txt"}
+SKIP_NAMES = {"structure.txt", "fix_pipeline.py"}
+STALE = __import__("re").compile(r"^ewsv2_S\d+$")              # old extracted segment copies
 WHEEL_TARGET = ["--platform", "win_amd64", "--python-version", "3.11", "--implementation", "cp"]
-NOT_LOCKED = {"pip", "setuptools", "wheel", "ewsv2"}
+NOT_LOCKED = {"pip", "setuptools", "ewsv2"}
 INSTALLERS = [
     ("python-{v}-amd64.exe", "https://www.python.org/ftp/python/{v}/python-{v}-amd64.exe"),
     ("OllamaSetup.exe", "https://ollama.com/download/OllamaSetup.exe"),
@@ -75,10 +76,75 @@ def _ignore(dest: Path):
 
     def ign(directory, names):
         d = Path(directory).resolve()
-        out = {n for n in names if n in SKIP_DIRS or n in SKIP_NAMES}
+        out = {n for n in names if n in SKIP_DIRS or n in SKIP_NAMES or STALE.match(n)}
         out |= {n for n in names if (d / n).resolve() == dest}            # never copy the capsule into itself
         return out
     return ign
+
+
+FAT32_MAX = 4 * 1024 ** 3 - 1
+
+
+def _filesystem(path: Path) -> str:
+    """File system name of the drive holding ``path`` (Windows only; '' elsewhere)."""
+    if not sys.platform.startswith("win"):
+        return ""
+    try:
+        import ctypes
+        root = str(Path(path).resolve().anchor)
+        buf = ctypes.create_unicode_buffer(64)
+        ok = ctypes.windll.kernel32.GetVolumeInformationW(ctypes.c_wchar_p(root), None, 0, None, None, None, buf, 64)
+        return buf.value if ok else ""
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def sync_tree(src: Path, dst: Path, ignore=None, mirror: bool = False, max_file: int | None = None) -> dict:
+    """Copy src to dst, skipping files that are already there with the same size and time.
+
+    mirror=True also deletes files in dst that no longer exist in src (so removed files leave the capsule).
+    max_file: files larger than this are skipped (FAT32 pendrives cannot hold files of 4 GB or more).
+    """
+    stats = {"copied": 0, "same": 0, "removed": 0, "too_big": []}
+    keep = set()
+    for root, dirs, files in os.walk(src):
+        r = Path(root)
+        if ignore is not None:
+            skip = ignore(root, dirs + files)
+            dirs[:] = [d for d in dirs if d not in skip]
+            files = [f for f in files if f not in skip]
+        rel = r.relative_to(src)
+        (dst / rel).mkdir(parents=True, exist_ok=True)
+        keep.add((dst / rel).resolve())
+        for f in files:
+            s_, d_ = r / f, dst / rel / f
+            keep.add(d_.resolve())
+            try:
+                st = s_.stat()
+            except OSError:
+                continue
+            if max_file is not None and st.st_size > max_file:
+                stats["too_big"].append(str(s_))
+                continue
+            if d_.exists():
+                dt = d_.stat()
+                if dt.st_size == st.st_size and abs(dt.st_mtime - st.st_mtime) < 2.1:
+                    stats["same"] += 1
+                    continue
+            shutil.copy2(s_, d_)
+            stats["copied"] += 1
+    if mirror and dst.exists():
+        for root, dirs, files in os.walk(dst, topdown=False):
+            for f in files:
+                p = Path(root) / f
+                if p.resolve() not in keep:
+                    p.unlink()
+                    stats["removed"] += 1
+            for d in dirs:
+                p = Path(root) / d
+                if p.resolve() not in keep:
+                    shutil.rmtree(p, ignore_errors=True)
+    return stats
 
 
 def freeze() -> list[str]:
@@ -120,7 +186,19 @@ def wheelhouse(lock: Path, out: Path) -> list[str]:
     out.mkdir(parents=True, exist_ok=True)
     reqs = [ln.split("#")[0].strip() for ln in lock.read_text(encoding="utf-8").splitlines()]
     reqs = [r for r in reqs if "==" in r]
-    print(f"  downloading {len(reqs)} packages into {out} …")
+    have = {f.name.lower() for f in out.glob("*.whl")}
+
+    def present(r: str) -> bool:
+        n, v = r.split("==", 1)
+        stem = n.lower().replace("-", "_").replace(".", "_") + "-" + v.lower() + "-"
+        return any(h.startswith(stem) for h in have)
+    todo = [r for r in reqs if not present(r)]
+    print(f"  {len(reqs) - len(todo)} of {len(reqs)} packages already in {out}; downloading {len(todo)} …")
+    if not todo:
+        return []
+    lock = out / "_todo.txt"
+    lock.write_text("\n".join(todo) + "\n", encoding="utf-8")
+    reqs = todo
     code, msg = _pip(["download", "--no-deps", "--only-binary=:all:", *WHEEL_TARGET, "-d", str(out), "-r", str(lock)])
     failed = []
     if code != 0:                                        # one at a time, to find the ones without a wheel
@@ -134,6 +212,7 @@ def wheelhouse(lock: Path, out: Path) -> list[str]:
                 else:
                     print(f"  built a wheel for {r} from its source archive")
     _pip(["download", "--only-binary=:all:", *WHEEL_TARGET, "-d", str(out), "pip", "setuptools", "wheel"])
+    lock.unlink(missing_ok=True)
     return failed
 
 
@@ -226,8 +305,15 @@ def build(dest: Path | None, wheels: bool = True, v1: bool = True, ollama: bool 
     t0 = time.time()
     dest.mkdir(parents=True, exist_ok=True)
 
-    print("\n[1] Copying the project …")
-    shutil.copytree(REPO_ROOT, dest / "project", ignore=_ignore(dest), dirs_exist_ok=True)
+    fs = _filesystem(dest)
+    max_file = FAT32_MAX if fs.upper() == "FAT32" else None
+    if max_file:
+        print("  note: the target drive is FAT32 – files of 4 GB or more cannot be stored on it and are skipped")
+
+    print("\n[1] Copying the project (files removed from the project are removed from the capsule too) …")
+    st_ = sync_tree(REPO_ROOT, dest / "project", ignore=_ignore(dest), mirror=True, max_file=max_file)
+    print(f"  {st_['copied']} copied, {st_['same']} unchanged, {st_['removed']} removed")
+    too_big = list(st_["too_big"])
 
     print("[2] Writing the lock files …")
     locks = dest / "locks"
@@ -256,15 +342,18 @@ def build(dest: Path | None, wheels: bool = True, v1: bool = True, ollama: bool 
         src = _ollama_models()
         if src and src.exists():
             print(f"[4] Copying the Ollama models from {src} …")
-            shutil.copytree(src, dest / "ollama" / "models", dirs_exist_ok=True)
+            st_ = sync_tree(src, dest / "ollama" / "models", max_file=max_file)
+            too_big += st_["too_big"]
+            print(f"  {st_['copied']} copied, {st_['same']} unchanged")
         else:
             print("[4] ! Ollama models folder not found – skipped")
     if arduino:
         src = _arduino15()
         if src and src.exists():
             print(f"[5] Copying the Arduino board files from {src} …")
-            shutil.copytree(src, dest / "arduino" / "Arduino15", dirs_exist_ok=True,
-                            ignore=shutil.ignore_patterns("staging"))
+            st_ = sync_tree(src, dest / "arduino" / "Arduino15", ignore=shutil.ignore_patterns("staging"),
+                            max_file=max_file)
+            print(f"  {st_['copied']} copied, {st_['same']} unchanged")
         else:
             print("[5] ! Arduino15 folder not found – skipped")
     if installers:
@@ -279,7 +368,7 @@ def build(dest: Path | None, wheels: bool = True, v1: bool = True, ollama: bool 
                 print(f"  {'ok' if ok else 'failed'}: {name}")
 
     print("[7] Writing RESTORE.md, restore.ps1 and the manifest …")
-    (dest / "RESTORE.md").write_text(restore_md(wheels, v1, ollama, arduino, installers), encoding="utf-8")
+    (dest / "RESTORE.md").write_text(restore_md(wheels, v1, ollama, arduino, installers, dest), encoding="utf-8")
     (dest / "restore.ps1").write_text(RESTORE_PS1, encoding="utf-8")
     info = {"created": time.strftime("%Y-%m-%d %H:%M"), "computer": platform.node(), "python": platform.python_version(),
             "ewsv2": __version__, "segment": SEGMENT, "wheel_failures": failed,
@@ -289,6 +378,9 @@ def build(dest: Path | None, wheels: bool = True, v1: bool = True, ollama: bool 
     print(f"\nDone in {(time.time() - t0) / 60:.1f} min: {man['files']:,} files, {_gb(man['bytes'])}.")
     if failed:
         print(f"! {len(failed)} package(s) have no offline copy: {', '.join(failed)} (see RESTORE.md).")
+    if too_big:
+        print(f"! {len(too_big)} file(s) of 4 GB or more were skipped (FAT32 drive): {', '.join(too_big[:3])}. "
+              "Format the pendrive as exFAT to store them.")
     print(f"Verify it any time with:  python -m ewsv2 capsule --check \"{dest}\"")
     return 0 if not failed else 1
 
@@ -321,8 +413,11 @@ def check(folder: Path) -> int:
 
 # ---------------------------------------------------------------------------------------------- restore texts
 
-def restore_md(wheels: bool, v1: bool, ollama: bool, arduino: bool, installers: bool) -> str:
+def restore_md(wheels: bool, v1: bool, ollama: bool, arduino: bool, installers: bool,
+               dest: Path | None = None) -> str:
     manual = "\n".join(f"- {n}: {u}" for n, u in MANUAL)
+    cap = str(dest) if dest is not None else "E:\\ewsv2_capsule"
+    drive = cap[:2] if len(cap) > 1 and cap[1] == ":" else "the pendrive"
     ard_note = ("- Arduino board files: copy `arduino/Arduino15` to `%LOCALAPPDATA%\\Arduino15` before starting the IDE."
                 if arduino else "")
     return f"""# Water Quality Early Warning System – restore without internet
@@ -341,10 +436,10 @@ Written {time.strftime('%d %b %Y')} by `python -m ewsv2 capsule` (ewsv2 {__versi
 
 ## Restore in one command
 1. Install **Python 3.11 (64-bit)** – from `installers/` if present – and tick *Add python.exe to PATH*.
-2. Open PowerShell and run (change `E:` to the pendrive's letter):
+2. Open PowerShell and run (here the capsule is on {drive}):
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File E:\\ewsv2_capsule\\restore.ps1
+powershell -ExecutionPolicy Bypass -File {cap}\\restore.ps1
 ```
 
 It copies the project to `Documents\\Github\\water-quality-early-warning`, creates `venv2` (and version 1's
@@ -353,10 +448,10 @@ To restore somewhere else: `restore.ps1 -Target D:\\projects\\water`.
 
 ## Restore by hand
 ```powershell
-robocopy E:\\ewsv2_capsule\\project "$HOME\\Documents\\Github\\water-quality-early-warning" /E
+robocopy {cap}\\project "$HOME\\Documents\\Github\\water-quality-early-warning" /E
 cd "$HOME\\Documents\\Github\\water-quality-early-warning"
 py -3.11 -m venv venv2
-venv2\\Scripts\\python -m pip install --no-index --find-links E:\\ewsv2_capsule\\wheelhouse\\v2 -r E:\\ewsv2_capsule\\locks\\requirements-lock-v2.txt
+venv2\\Scripts\\python -m pip install --no-index --no-deps --find-links {cap}\\wheelhouse\\v2 -r {cap}\\locks\\requirements-lock-v2.txt
 venv2\\Scripts\\python -m ewsv2 doctor
 venv2\\Scripts\\python -m ewsv2 dashboard
 ```
@@ -372,7 +467,7 @@ Download links:
 
 ## Check the capsule
 ```powershell
-venv2\\Scripts\\python -m ewsv2 capsule --check E:\\ewsv2_capsule
+venv2\\Scripts\\python -m ewsv2 capsule --check {cap}
 ```
 """
 
@@ -406,14 +501,14 @@ if ($LASTEXITCODE -ge 8) { Write-Host "Copy failed (robocopy code $LASTEXITCODE)
 # 3. Version 2 environment
 Write-Host "[2/4] Creating venv2 from the wheelhouse (offline) ..."
 if (-not (Test-Path "$Target\venv2\Scripts\python.exe")) { New-Venv "$Target\venv2" }
-& "$Target\venv2\Scripts\python.exe" -m pip install --no-index --find-links "$Cap\wheelhouse\v2" -r "$Cap\locks\requirements-lock-v2.txt"
+& "$Target\venv2\Scripts\python.exe" -m pip install --no-index --no-deps --find-links "$Cap\wheelhouse\v2" -r "$Cap\locks\requirements-lock-v2.txt"
 if ($LASTEXITCODE -ne 0) { Write-Host "venv2 install reported a problem (see above)." -ForegroundColor Yellow }
 
 # 4. Version 1 environment (optional)
 if (-not $SkipV1 -and (Test-Path "$Cap\wheelhouse\v1")) {
     Write-Host "[3/4] Creating venv (version 1) from the wheelhouse (offline) ..."
     if (-not (Test-Path "$Target\venv\Scripts\python.exe")) { New-Venv "$Target\venv" }
-    & "$Target\venv\Scripts\python.exe" -m pip install --no-index --find-links "$Cap\wheelhouse\v1" -r "$Cap\locks\requirements-lock-v1.txt"
+    & "$Target\venv\Scripts\python.exe" -m pip install --no-index --no-deps --find-links "$Cap\wheelhouse\v1" -r "$Cap\locks\requirements-lock-v1.txt"
 } else { Write-Host "[3/4] Version 1 environment skipped." }
 
 # 5. AI model (optional)
@@ -422,8 +517,10 @@ if (Test-Path "$Cap\ollama\models") {
     robocopy "$Cap\ollama\models" "$HOME\.ollama\models" /E /NFL /NDL /NJH /NJS /NP | Out-Null
 } else { Write-Host "[4/4] No Ollama models in the capsule (template reports will be used)." }
 
-Write-Host "`nSystem check:" -ForegroundColor Cyan
+Write-Host "`nSystem check (both versions):" -ForegroundColor Cyan
 Set-Location $Target
 & "$Target\venv2\Scripts\python.exe" -m ewsv2 doctor --no-board
-Write-Host "`nStart the dashboard with:  cd `"$Target`"; venv2\Scripts\python -m ewsv2 dashboard" -ForegroundColor Green
+Write-Host "`nStart both dashboards (version 2 on port 8502, version 1 on port 8501):" -ForegroundColor Green
+Write-Host "  cd `"$Target`"; venv2\Scripts\python -m ewsv2 dashboard" -ForegroundColor Green
+Write-Host "Version 1 alone:  cd `"$Target\dashboard`"; ..\venv\Scripts\python -m streamlit run app.py --server.port 8501" -ForegroundColor Green
 '''

@@ -106,7 +106,7 @@ def check_packages() -> list[Check]:
             out.append(Check("Software", "Versions vs lock file", "degraded",
                              f"{len(diff)} differ, {len(gone)} not installed"
                              + (": " + "; ".join((diff + gone)[:6]) + (" …" if len(diff) + len(gone) > 6 else "")),
-                             "pip install -r ewsv2\\handover\\locks\\requirements-lock-v2.txt "
+                             "pip install --no-deps -r ewsv2\\handover\\locks\\requirements-lock-v2.txt "
                              "(or offline from the capsule)"))
         else:
             out.append(Check("Software", "Versions vs lock file", "ok",
@@ -196,19 +196,80 @@ def check_llm() -> list[Check]:
                   "" if ok else f"start Ollama, then: ollama pull {model}")]
 
 
-def check_version1() -> list[Check]:
+V1_PROBE = r"""
+import json, importlib, joblib
+mods = ["numpy", "pandas", "sklearn", "xgboost", "tensorflow", "streamlit", "plotly", "shap", "imblearn", "seaborn"]
+out = {"versions": {}, "errors": {}}
+for m in mods:
+    try:
+        out["versions"][m] = getattr(importlib.import_module(m), "__version__", "?")
+    except Exception as exc:
+        out["errors"][m] = f"{type(exc).__name__}: {exc}"[:160]
+try:
+    joblib.load("models/classification/random_forest.pkl")
+    out["model_load"] = "ok"
+except Exception as exc:
+    out["model_load"] = f"{type(exc).__name__}: {exc}"[:160]
+print("V1PROBE" + json.dumps(out))
+"""
+V1_MODELS = ["classification/random_forest.pkl", "classification/xgboost.pkl", "classification/svm.pkl",
+             "classification/scaler.pkl", "forecasting/bilstm_attention.keras", "forecasting/scaler.pkl",
+             "anomaly/isolation_forest.pkl"]
+V1_DATA = ["data/raw/water_potability.csv", "data/raw/water_dataset.mat"]
+
+
+def check_version1(probe: bool = True) -> list[Check]:
+    """Version 1 lives in the same repository with its own environment (venv). It is checked, never changed."""
     out = []
-    venv = REPO_ROOT / "venv"
-    py = venv / ("Scripts/python.exe" if sys.platform.startswith("win") else "bin/python")
-    out.append(Check("Version 1", "Version 1 environment (venv)", "ok" if py.exists() else "degraded",
-                     "found" if py.exists() else "not found – the Version 1 page shows the published results",
-                     "" if py.exists() else "restore it from the capsule (restore.ps1) or follow the version 1 README"))
-    app = REPO_ROOT / "dashboard" / "app.py"
-    models = REPO_ROOT / "models"
-    ok = app.exists() and models.exists() and any(models.rglob("*.*"))
-    out.append(Check("Version 1", "Version 1 dashboard and models", "ok" if ok else "degraded",
-                     "dashboard/app.py and trained models present" if ok else "dashboard or trained models missing",
-                     "" if ok else "python main.py --train (in venv)"))
+    py = REPO_ROOT / "venv" / ("Scripts/python.exe" if sys.platform.startswith("win") else "bin/python")
+    if not py.exists():
+        out.append(Check("Version 1", "Version 1 environment (venv)", "degraded",
+                         "not found – the Version 1 page shows the published results instead",
+                         "restore it: powershell -ExecutionPolicy Bypass -File <capsule>\\restore.ps1 "
+                         "(without -SkipV1), or: py -3.11 -m venv venv; venv\\Scripts\\pip install -r "
+                         "ewsv2\\handover\\locks\\requirements-lock-v1.txt"))
+    elif not probe:
+        out.append(Check("Version 1", "Version 1 environment (venv)", "ok", "found (packages not tested: --quick)"))
+    else:
+        import subprocess
+        try:
+            r = subprocess.run([str(py), "-c", V1_PROBE], cwd=REPO_ROOT, capture_output=True, text=True, timeout=300)
+            line = next((ln for ln in r.stdout.splitlines() if ln.startswith("V1PROBE")), None)
+            res = json.loads(line[7:]) if line else {"errors": {"python": (r.stderr or "no output")[-160:]}}
+        except Exception as exc:  # noqa: BLE001
+            res = {"errors": {"python": f"{type(exc).__name__}: {exc}"}}
+        errs = res.get("errors", {})
+        if errs:
+            out.append(Check("Version 1", "Version 1 environment (venv)", "fail",
+                             "cannot import " + "; ".join(f"{k} ({v})" for k, v in list(errs.items())[:3]),
+                             "venv\\Scripts\\pip install --no-deps -r ewsv2\\handover\\locks\\requirements-lock-v1.txt "
+                             "(or restore from the capsule)"))
+        else:
+            v = res.get("versions", {})
+            lock = read_lock(LOCK_DIR / "requirements-lock-v1.txt")
+            diff = [f"{n} {v[m]} (lock {lock[n]})" for m, n in (("numpy", "numpy"), ("tensorflow", "tensorflow"),
+                                                                 ("streamlit", "streamlit"), ("sklearn", "scikit-learn"))
+                    if m in v and n in lock and v[m] != lock[n]]
+            out.append(Check("Version 1", "Version 1 environment (venv)", "degraded" if diff else "ok",
+                             f"all packages import (TensorFlow {v.get('tensorflow')}, numpy {v.get('numpy')}, "
+                             f"Streamlit {v.get('streamlit')})" + (f"; differs from lock: {', '.join(diff)}"
+                                                                    if diff else ""),
+                             "venv\\Scripts\\pip install --no-deps -r ewsv2\\handover\\locks\\requirements-lock-v1.txt"
+                             if diff else ""))
+            if res.get("model_load") != "ok":
+                out.append(Check("Version 1", "Version 1 model loading", "fail",
+                                 f"random_forest.pkl does not load: {res.get('model_load')}",
+                                 "venv\\Scripts\\python main.py --train"))
+    missing = [m for m in V1_MODELS if not (REPO_ROOT / "models" / m).exists()]
+    out.append(Check("Version 1", "Version 1 trained models", "ok" if not missing else "degraded",
+                     f"all {len(V1_MODELS)} model files present" if not missing else "missing: " + ", ".join(missing),
+                     "" if not missing else "venv\\Scripts\\python main.py --train"))
+    gone = [d for d in V1_DATA if not (REPO_ROOT / d).exists()]
+    app = (REPO_ROOT / "dashboard" / "app.py").exists()
+    out.append(Check("Version 1", "Version 1 data and dashboard", "ok" if (app and not gone) else "degraded",
+                     "datasets and dashboard/app.py present" if (app and not gone) else
+                     "missing: " + ", ".join(gone + ([] if app else ["dashboard/app.py"])),
+                     "" if (app and not gone) else "copy them from the capsule's project folder"))
     return out
 
 
@@ -243,13 +304,14 @@ def check_disk() -> list[Check]:
 
 # ---------------------------------------------------------------------------------------------- run
 
-def run(board: bool = True, llm: bool = True) -> list[Check]:
+def run(board: bool = True, llm: bool = True, v1_probe: bool = True) -> list[Check]:
     checks: list[Check] = []
     for fn in (check_python, check_packages, check_plugins, check_data, check_outputs):
         checks += fn()
     checks += check_board(board)
     checks += check_llm() if llm else [Check("AI report writer", "Ollama + model", "skipped", "not checked (--no-llm)")]
-    for fn in (check_version1, check_dashboard, check_disk):
+    checks += check_version1(v1_probe)
+    for fn in (check_dashboard, check_disk):
         checks += fn()
     return checks
 

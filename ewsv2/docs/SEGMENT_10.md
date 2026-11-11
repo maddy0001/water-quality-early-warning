@@ -1,9 +1,21 @@
 # Segment 10 – Robustness and hand-over
 
-**Status:** done and checked in the cloud (164 tests, including 17 that break parts on purpose); you run it
-on your laptop · **Builds on:** S0–S9 · **Feeds:** paper 2, the viva, and every future run of the project
+**Status:** done – checked in the cloud (166 tests, 19 of them break parts on purpose) and on your laptop (10.0); update 10.1 below · **Builds on:** S0–S9 · **Feeds:** paper 2, the viva, and every future run of the project
 **Delivers:** a system check, failure tests, exact lock files, an offline pendrive capsule, and the paper's
 tables and figures
+
+## 0. Update 10.1 – both versions in the capsule, pendrive on H:, one README per folder
+
+Your run of 10.0: tests 160/4, `doctor` 19/19 OK, capsule 7.56 GB intact, offline restore of version 2 worked.
+Your questions, answered:
+
+| You said | What it was | Now |
+|---|---|---|
+| "Version 1 is not working" | The test restore used `-SkipV1` (my instruction), so the test folder had no `venv`. Your real project's version 1 was fine (doctor: OK, dashboard started it on 8501) | The restore test below rebuilds **both** environments. `doctor` now really tests version 1: it starts version 1's Python, imports TensorFlow, scikit-learn, XGBoost, Streamlit, SHAP …, loads a trained model, and checks the 7 model files and both datasets |
+| "All the files in the capsule" | Everything was in it except `venv` and `venv2` (and two junk files) | Same, on purpose: an environment stores absolute paths and breaks when moved, so the capsule holds every package and **rebuilds** both environments, which is what your restore test proved. Exact installs now use `--no-deps`, so the rebuilt environment is the locked one, package for package |
+| "Remove the unwanted files" | `ewsv2_S2\` (old copy from Segment 2), `structure.txt`, `fix_pipeline.py` (one-off, already applied), `__pycache__` folders | Removed with the commands in 4a; never copied into the capsule; re-running `capsule` deletes from the capsule whatever you deleted from the project |
+| "The capsule went to E: (hard disk), the pendrive is H:" | | 4c refreshes E:, copies it to H: and checks it there, then deletes E: |
+| "Two READMEs will conflict" | Different folders = different files; Git never mixes them. GitHub shows the root one | Root `README.md` rewritten for the **whole repository**: both versions side by side (folders, environments, dashboards, setup, backup), then version 1 in full. `ewsv2/README.md` is the detailed version 2 guide and points back to it |
 
 ## 1. Goal
 
@@ -90,80 +102,90 @@ ewsv2/__init__.py                   SEGMENT = "S10"
 
 ## 4. Run it (PowerShell)
 
-### 4a. Install and test
+### 4a. Install, clean up, test
 
 ```powershell
 cd "C:\Users\THE GOD\Documents\Github\water-quality-early-warning"
 venv2\Scripts\Activate.ps1
 Remove-Item -Recurse -Force ewsv2
-Expand-Archive -Path "$HOME\Downloads\ewsv2_S10.zip" -DestinationPath . -Force
+Expand-Archive -Path "$HOME\Downloads\ewsv2_S10_1.zip" -DestinationPath . -Force
 
-python -m ewsv2 info                         # built up to segment S10
-python -m pytest ewsv2\tests -q              # about 160 passed, 4 skipped (cloud: 164 passed)
+# unwanted files (not in Git; not needed by either version)
+Remove-Item -Recurse -Force ewsv2_S2, structure.txt, fix_pipeline.py
+Get-ChildItem -Recurse -Force -Directory -Include __pycache__, .pytest_cache |
+    Where-Object { $_.FullName -notmatch '\\venv2?\\' } | Remove-Item -Recurse -Force
+
+python -m pytest ewsv2\tests -q              # about 161 passed, 5 skipped (cloud: 166 passed)
+python -m ewsv2 doctor                       # now also tests version 1 (takes ~20 s longer)
 ```
 
-No new packages.
+The root `README.md` was already written into your project folder by me (you will see it in `git status`).
 
-### 4b. System check and paper material
+### 4b. Paper material (unchanged)
 
 ```powershell
-python -m ewsv2 doctor                       # Arduino plugged in: also checks the three sensors
 python -m ewsv2 paper
-explorer outputs_v2\paper
 ```
 
-Expected from `doctor` on your laptop: Python 3.11, all packages matching the lock file, both datasets, 10 of
-10 analyses, version 1 found. Ollama and the Arduino show `[ OK ]` when running/plugged in, otherwise
-`[ -- ]` with the fix. Send me the doctor output.
+### 4c. Move the capsule to the pendrive (H:)
 
-`paper` uses *your* laptop's results, so T7 includes your AI-model report runs.
-
-### 4c. The pendrive time capsule (do this once, while you have internet)
-
-1. Plug in the 32 GB pendrive and look up its drive letter in File Explorer (below: `E:`).
-2. Run (about 15–30 minutes; it downloads about 2 GB of packages and copies the rest):
+The capsule on E: is complete; refresh it with the new code (fast: unchanged files are skipped, the removed
+junk is deleted from it), copy it to the pendrive, check it there, then delete the E: copy:
 
 ```powershell
-python -m ewsv2 capsule --dest E:\ewsv2_capsule --dry-run          # shows sizes, writes nothing
 python -m ewsv2 capsule --dest E:\ewsv2_capsule --with-ollama --with-arduino --with-installers
-python -m ewsv2 capsule --check E:\ewsv2_capsule
+robocopy E:\ewsv2_capsule H:\ewsv2_capsule /MIR /NFL /NDL /NP
+python -m ewsv2 capsule --check H:\ewsv2_capsule
+Remove-Item -Recurse -Force E:\ewsv2_capsule
 ```
 
-| Part | Size (about) |
-|---|---|
-| Project: version 1 + 2, data, results, trained models (no venvs) | 0.2–0.5 GB |
-| Wheelhouse v2 + v1 (every package, Windows, Python 3.11) | 2 GB |
-| Ollama models (qwen2.5:3b and any others you pulled) | 2–4 GB |
-| Arduino IDE board files | 0.3–1 GB |
-| Installers (Python 3.11, Ollama) | 1.2 GB |
+Copying 7.5 GB to a USB pendrive takes about 10–30 minutes. If the pendrive is FAT32, files of 4 GB or more
+cannot be stored; none of yours is that big (the largest is the AI model, under 2 GB), and `capsule` warns
+if one ever is.
 
-The CH340 driver and the Arduino IDE cannot be downloaded automatically; their links are in `RESTORE.md`.
-If you want them on the pendrive too, download them by hand into `E:\ewsv2_capsule\installers`.
+### 4d. Prove both versions restore offline
 
-3. Optional but recommended – **prove that the restore works offline**. Turn Wi-Fi off, then:
+Turn Wi-Fi off. Delete the old test folder, then restore **both versions** from the pendrive:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File E:\ewsv2_capsule\restore.ps1 -Target "$HOME\Desktop\ewsv2_restore_test" -SkipV1
+cd $HOME
+Remove-Item -Recurse -Force "$HOME\Desktop\ewsv2_restore_test"
+powershell -ExecutionPolicy Bypass -File H:\ewsv2_capsule\restore.ps1 -Target "$HOME\Desktop\ewsv2_restore_test"
 ```
 
-It copies the project, builds `venv2` only from the pendrive, and ends with the system check. Then delete
-the test folder and turn Wi-Fi on again.
-
-### 4d. Commit
+Expected at the end: `doctor` with **Version 1 environment (venv): all packages import (TensorFlow 2.13.0 …)**,
+**Version 1 trained models: all 7 model files present**, and every version 2 line OK. Then start both
+dashboards from the restored copy:
 
 ```powershell
-git add -A ewsv2
-git commit -m "ewsv2 S10: doctor, failure tests, lock files, offline capsule, paper tables and figures"
+cd "$HOME\Desktop\ewsv2_restore_test"
+venv2\Scripts\python -m ewsv2 dashboard      # must print: version 1 dashboard on http://localhost:8501
+```
+
+Open http://localhost:8501 (version 1) and http://localhost:8502 (version 2), click through a page of each,
+press Ctrl+C, turn Wi-Fi on, and delete the test folder:
+
+```powershell
+cd $HOME
+Remove-Item -Recurse -Force "$HOME\Desktop\ewsv2_restore_test"
+```
+
+### 4e. Commit
+
+```powershell
+cd "C:\Users\THE GOD\Documents\Github\water-quality-early-warning"
+git add -A ewsv2 README.md
+git commit -m "ewsv2 S10.1: version 1 checks, capsule refresh/mirror, both versions restored, repository README"
 git push
 ```
 
 ## 5. Check it worked
 
-- [ ] tests: about 160 passed, 4 skipped
-- [ ] `doctor`: no `[FAIL]`; the `[ -- ]` lines are only parts that are really absent
-- [ ] `outputs_v2\paper`: `tables.md`, `tables.tex`, 7 figures (PNG + PDF)
-- [ ] `capsule --check`: "Capsule intact"
-- [ ] (optional) offline restore test ends with the system check
+- [ ] tests: about 161 passed, 5 skipped
+- [ ] `doctor` on the project: no `[FAIL]`; three version 1 lines OK
+- [ ] `capsule --check H:\ewsv2_capsule`: "Capsule intact"
+- [ ] offline restore of both versions: doctor OK for version 1 and 2; both dashboards open
+- [ ] GitHub front page shows the new README with both versions
 
 ## 6. Viva notes
 

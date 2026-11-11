@@ -4,19 +4,31 @@
 quality alarms on public utility data (GECCO 2018/2019), with explanations, a local
 LLM incident reporter, and an Arduino Uno edge version (every hardware part optional).
 
-Version 1 (paper 1, ICESC 2026) is the code at the repository root and is tagged `v1.0`.
-Nothing here imports or changes it.
+Version 1 (paper 1, ICESC 2026) is the code at the repository root, tagged `v1.0`, with its own environment
+`venv/`. Nothing here imports or changes it. The repository README (`../README.md`) describes both versions;
+this file is the detailed guide for version 2.
 
 ## Quick start (Windows PowerShell)
 
+Everyday use:
+
+```powershell
+cd "$HOME\Documents\Github\water-quality-early-warning"
+venv2\Scripts\Activate.ps1
+python -m ewsv2 doctor          # checks both versions, data, results, Arduino, AI model, ports
+python -m ewsv2 dashboard       # version 2 on :8502 and version 1 on :8501
+```
+
+New computer, with internet:
+
 ```powershell
 py -3.11 -m venv venv2
-venv2\Scripts\Activate.ps1
-pip install -r ewsv2\requirements.txt
-python -m ewsv2 fetch gecco2018
-python -m ewsv2 inspect --config s0_inspect
-python -m pytest ewsv2\tests -q
+venv2\Scripts\python -m pip install --no-deps -r ewsv2\handover\locks\requirements-lock-v2.txt   # exact tested versions
+venv2\Scripts\python -m ewsv2 fetch all
+venv2\Scripts\python -m pytest ewsv2\tests -q
 ```
+
+New computer, without internet: restore from the pendrive capsule (section *Coming back after months*).
 
 ## Layout
 
@@ -33,8 +45,9 @@ python -m pytest ewsv2\tests -q
 | `llm/` | alarm records, WHO-grounded incident reports (template / local LLM via Ollama), automatic fact check | S7 |
 | `edge/` | Uno-sized edge algorithm (Python reference), model export, Arduino sketch, PC build, simulated Uno, USB replay, board detection | S8 |
 | `hardware/` | wiring guide, hardware check sketch and guide | S8 |
-| `app/` | operator dashboard: control room, live sensor lab, results, reports, version 1, system check | S9 |
+| `app/` | operator dashboard: Overview, Operations Console, Sensor Lab, Performance Analytics, Data Explorer, Incident Reports, System Guide, Version 1 Baseline, System Status | S9 |
 | `live/` | live demo station (probe, DHT11, touch) and the board service | S9 |
+| `handover/` | system check (`doctor`), offline time capsule, paper tables and figures, lock files | S10 |
 | `configs/` | experiment configs | all |
 | `docs/` | `SEGMENT_XX.md`, one per segment | all |
 
@@ -67,17 +80,23 @@ python -m ewsv2 edge     --config s8_edge      [--set data.source=gecco2019]   #
 python -m ewsv2 run --config full_pipeline
 python -m ewsv2 doctor   [--no-board] [--no-llm]                # checks every part, says how to fix it
 python -m ewsv2 paper                                  # paper tables (CSV/Markdown/LaTeX) and figures (PNG/PDF)
-python -m ewsv2 capsule  --dest E:\ewsv2_capsule [--with-ollama --with-arduino --with-installers]
-python -m ewsv2 capsule  --check E:\ewsv2_capsule      # verify a capsule
+python -m ewsv2 capsule  --dest H:\ewsv2_capsule [--with-ollama --with-arduino --with-installers]
+python -m ewsv2 capsule  --check H:\ewsv2_capsule      # verify a capsule
 ```
 
 ## Coming back after months (hand-over)
 
 1. `python -m ewsv2 doctor` – every part is listed as works / replaced / needs fixing, with the fix.
 2. If packages changed or the laptop is new: restore from the pendrive capsule
-   (`powershell -ExecutionPolicy Bypass -File E:\ewsv2_capsule\restore.ps1`), which rebuilds `venv2`
-   and version 1's `venv` offline from the exact versions in `ewsv2/handover/locks/`.
+   (`powershell -ExecutionPolicy Bypass -File H:\ewsv2_capsule\restore.ps1`), which copies the project and
+   rebuilds both `venv2` and version 1's `venv` offline from the exact versions in `ewsv2/handover/locks/`.
+   The environments are rebuilt, not copied, because a Python environment stops working when it is moved.
 3. `python -m ewsv2 dashboard`.
+
+The capsule holds everything except the two environments: code, data (including the git-ignored GECCO data,
+`data/processed/` and the trained version 1 models), results, `.git`, every package as a Windows wheel, the
+Ollama models, the Arduino board files and installers. Re-running `capsule` on the same folder refreshes it:
+unchanged files are skipped and files deleted from the project are deleted from the capsule.
 
 ## Data
 

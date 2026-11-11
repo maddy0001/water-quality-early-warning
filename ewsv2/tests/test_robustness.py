@@ -170,10 +170,17 @@ def test_capsule_build_check_and_tamper_detection(tmp_path, monkeypatch):
     (repo / "ewsv2" / "a.py").write_text("print(1)\n")
     (repo / "venv2" / "Lib").mkdir(parents=True)                    # must be left out
     (repo / "venv2" / "Lib" / "big.bin").write_bytes(b"0" * 1000)
+    (repo / "ewsv2_S2" / "ewsv2").mkdir(parents=True)                # stale segment copy: must be left out
+    (repo / "ewsv2_S2" / "ewsv2" / "old.py").write_text("x\n")
+    (repo / "old_note.txt").write_text("to be deleted later\n")
     monkeypatch.setattr(K, "REPO_ROOT", repo)
     dest = tmp_path / "capsule"
     assert K.build(dest, wheels=False) == 0
     assert (dest / "project" / "ewsv2" / "a.py").exists() and not (dest / "project" / "venv2").exists()
+    assert not (dest / "project" / "ewsv2_S2").exists() and (dest / "project" / "old_note.txt").exists()
+    (repo / "old_note.txt").unlink()                                 # removed from the project …
+    assert K.build(dest, wheels=False) == 0
+    assert not (dest / "project" / "old_note.txt").exists()          # … is removed from the capsule too
     for f in ("RESTORE.md", "restore.ps1", "manifest.json", "locks/requirements-lock-v2.txt",
               "locks/requirements-lock-v1.txt"):
         assert (dest / f).exists(), f
@@ -201,3 +208,34 @@ def test_paper_tables_and_figures_without_result_files(tmp_path, monkeypatch):
     assert (out / "tables.md").exists() and (out / "tables.tex").exists()
     assert (out / "figures" / "F1_architecture.png").exists()
     assert (out / "tables" / "T3.csv").exists() and (out / "tables" / "T9.csv").exists()
+
+
+def test_sync_tree_skips_unchanged_and_too_big_files(tmp_path):
+    from ewsv2.handover import capsule as K
+    src, dst = tmp_path / "s", tmp_path / "d"
+    (src / "sub").mkdir(parents=True)
+    (src / "sub" / "a.bin").write_bytes(b"1" * 10)
+    (src / "big.bin").write_bytes(b"2" * 100)
+    st = K.sync_tree(src, dst, max_file=50)
+    assert st["copied"] == 1 and len(st["too_big"]) == 1 and not (dst / "big.bin").exists()
+    st = K.sync_tree(src, dst, max_file=50)
+    assert st["copied"] == 0 and st["same"] == 1
+
+
+@pytest.mark.skipif(__import__("sys").platform.startswith("win"), reason="uses a shell script as a fake python")
+def test_doctor_tests_version1_by_running_its_python(tmp_path, monkeypatch):
+    import os
+    from ewsv2.handover import doctor as D
+    (tmp_path / "venv" / "bin").mkdir(parents=True)
+    fake = tmp_path / "venv" / "bin" / "python"
+    good = '{"versions": {"numpy": "1.24.3", "tensorflow": "2.13.0", "streamlit": "1.52.2"}, "errors": {}, "model_load": "ok"}'
+    fake.write_text(f"#!/bin/sh\necho 'V1PROBE{good}'\n")
+    os.chmod(fake, 0o755)
+    monkeypatch.setattr(D, "REPO_ROOT", tmp_path)
+    c = {x.name: x for x in D.check_version1(probe=True)}
+    assert c["Version 1 environment (venv)"].status == "ok"
+    assert c["Version 1 trained models"].status == "degraded"          # no models in the fake repo
+    bad = '{"versions": {}, "errors": {"tensorflow": "ImportError: DLL load failed"}, "model_load": "ok"}'
+    fake.write_text(f"#!/bin/sh\necho 'V1PROBE{bad}'\n")
+    c = {x.name: x for x in D.check_version1(probe=True)}
+    assert c["Version 1 environment (venv)"].status == "fail" and "tensorflow" in c["Version 1 environment (venv)"].detail

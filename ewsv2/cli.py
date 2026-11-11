@@ -419,7 +419,7 @@ def cmd_run(args) -> int:
 def cmd_doctor(args) -> int:
     from ewsv2.handover import doctor as D
     print(f"ewsv2 {__version__} – system check (this only looks; it changes nothing)")
-    checks = D.run(board=not args.no_board, llm=not args.no_llm)
+    checks = D.run(board=not args.no_board, llm=not args.no_llm, v1_probe=not args.quick)
     print(D.render(checks))
     path = D.write_report(checks, output_dir("doctor"))
     print(f"\nReport: {path}")
@@ -479,6 +479,7 @@ def build_parser() -> argparse.ArgumentParser:
     d = sub.add_parser("doctor", help="check every part of the system and say how to fix what is missing")
     d.add_argument("--no-board", action="store_true", help="do not look for the Arduino")
     d.add_argument("--no-llm", action="store_true", help="do not contact Ollama")
+    d.add_argument("--quick", action="store_true", help="do not start version 1's Python to test its packages")
     d.set_defaults(func=cmd_doctor)
 
     k = sub.add_parser("capsule", help="write the offline time capsule (pendrive) or check one")
