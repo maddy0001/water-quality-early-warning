@@ -1,10 +1,11 @@
-"""Look and feel: a bright, simple theme, the chart template and small building blocks (Segment 9.2).
+"""Design system of the dashboard: colours, CSS, chart template and page building blocks.
 
-Design rules (so every page feels the same):
-  * one colour = one meaning everywhere: blue = information, green = all good, red = the WATER changed,
-    amber = a SENSOR looks broken, violet = the operator / the AI writer;
-  * every page starts with a coloured header that says in one sentence what the page is for;
-  * plain words first, numbers second, details hidden in "more" boxes.
+Rules every page follows
+  * one colour = one meaning: indigo = information, emerald = normal, red = water-quality alarm,
+    amber = sensor fault, violet = operator review / report generation;
+  * every page opens with a header that states its purpose in one sentence;
+  * every control has a short caption under it that says what it does;
+  * numbers come with a one-line interpretation.
 """
 
 from __future__ import annotations
@@ -15,157 +16,188 @@ import plotly.graph_objects as go
 import plotly.io as pio
 import streamlit as st
 
-# ---- colours (bright, light background) ----
-BG = "#f5f7fb"
+# ---------------------------------------------------------------------------------------------- palette
+BG = "#f4f6fb"
 PANEL = "#ffffff"
-INK = "#0f172a"
-MUTED = "#5b6b82"
-LINE = "#e3e8f0"
-ACCENT = "#2563eb"          # blue  – information, the alarm score
-CYAN = "#06b6d4"            # water
-OK = "#16a34a"              # green – all good
-WARN = "#d97706"            # amber – a sensor looks broken
-BAD = "#dc2626"             # red   – the water changed
-VIOLET = "#7c3aed"          # the operator, the AI writer
+INK = "#0b1324"
+MUTED = "#5a6782"
+LINE = "#e2e7f1"
+ACCENT = "#4f46e5"          # indigo   – information, anomaly score
+CYAN = "#0891b2"
+OK = "#059669"              # emerald  – normal
+WARN = "#d97706"            # amber    – sensor fault
+BAD = "#dc2626"             # red      – water-quality alarm
+VIOLET = "#7c3aed"          # violet   – operator review, AI reports
 PINK = "#db2777"
-SERIES = [ACCENT, "#0891b2", "#16a34a", "#d97706", VIOLET, PINK, "#ea580c", "#0d9488", "#4f46e5"]
+SERIES = ["#4f46e5", "#0891b2", "#059669", "#d97706", "#db2777", "#7c3aed", "#ea580c", "#0d9488", "#2563eb",
+          "#c026d3", "#65a30d", "#e11d48"]
+GRAD = {
+    "indigo": "linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%)",
+    "ocean": "linear-gradient(135deg,#0284c7 0%,#06b6d4 100%)",
+    "emerald": "linear-gradient(135deg,#059669 0%,#14b8a6 100%)",
+    "amber": "linear-gradient(135deg,#ea580c 0%,#f59e0b 100%)",
+    "rose": "linear-gradient(135deg,#db2777 0%,#f43f5e 100%)",
+    "violet": "linear-gradient(135deg,#7c3aed 0%,#c026d3 100%)",
+    "slate": "linear-gradient(135deg,#334155 0%,#64748b 100%)",
+    "red": "linear-gradient(135deg,#b91c1c 0%,#ef4444 100%)",
+}
+
+WAVES = ("<svg class='waves' viewBox='0 24 150 28' preserveAspectRatio='none'><defs>"
+         "<path id='w' d='M-160 44c30 0 58-18 88-18s58 18 88 18 58-18 88-18 58 18 88 18v44h-352z'/></defs>"
+         "<g class='p'><use href='#w' x='48' y='0' fill='rgba(255,255,255,.22)'/>"
+         "<use href='#w' x='48' y='3' fill='rgba(255,255,255,.14)'/>"
+         "<use href='#w' x='48' y='5' fill='rgba(255,255,255,.10)'/></g></svg>")
 
 CSS = f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-:root {{ --ink:{INK}; --muted:{MUTED}; --panel:{PANEL}; --line:{LINE}; --accent:{ACCENT}; }}
-html, body, [class*="css"], .stMarkdown, button, input, textarea, select {{
-    font-family: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif; }}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+html, body, [class*="css"], .stMarkdown, button, input, textarea, select, label {{
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; }}
 .stApp {{ background: {BG}; }}
-.block-container {{ padding-top: 1.4rem; padding-bottom: 3rem; max-width: 1320px; }}
-h1, h2, h3, h4 {{ letter-spacing: -0.015em; color:{INK}; }}
-h3 {{ font-weight: 800; }}
-a {{ color:{ACCENT}; }}
+.block-container {{ padding-top: 1.2rem; padding-bottom: 3rem; max-width: 1360px; }}
+h1, h2, h3, h4 {{ letter-spacing: -0.02em; color:{INK}; }}
 
-/* header of every page */
-.hero {{ padding: 26px 30px; border-radius: 22px; margin-bottom: 18px; color: #fff;
-        background: linear-gradient(120deg, #2563eb 0%, #0ea5e9 55%, #06b6d4 100%);
-        box-shadow: 0 10px 30px -12px rgba(37,99,235,.55); position: relative; overflow: hidden; }}
-.hero:after {{ content:""; position:absolute; right:-60px; top:-60px; width:260px; height:260px; border-radius:50%;
-              background: rgba(255,255,255,.12); }}
-.hero .eyebrow {{ font-size:.78rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; opacity:.85; }}
-.hero h1 {{ margin: 2px 0 6px 0; font-size: 2.05rem; font-weight: 800; color:#fff; }}
-.hero p {{ margin: 0; font-size: 1.05rem; opacity:.95; max-width: 920px; line-height:1.5; }}
-.hero.violet {{ background: linear-gradient(120deg, #7c3aed 0%, #6366f1 55%, #3b82f6 100%);
-               box-shadow: 0 10px 30px -12px rgba(124,58,237,.55); }}
-.hero.green {{ background: linear-gradient(120deg, #059669 0%, #10b981 55%, #06b6d4 100%);
-              box-shadow: 0 10px 30px -12px rgba(5,150,105,.5); }}
-.hero.orange {{ background: linear-gradient(120deg, #ea580c 0%, #f59e0b 60%, #eab308 100%);
-               box-shadow: 0 10px 30px -12px rgba(234,88,12,.5); }}
-.hero.slate {{ background: linear-gradient(120deg, #334155 0%, #475569 60%, #64748b 100%);
-              box-shadow: 0 10px 30px -12px rgba(51,65,85,.5); }}
+/* ---- sidebar: deep indigo ---- */
+section[data-testid="stSidebar"] {{ background: linear-gradient(180deg,#0b1324 0%,#1e1b4b 100%); }}
+section[data-testid="stSidebar"] * {{ color: #cbd5e1; }}
+section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"] {{ border-radius: 10px; margin: 1px 0; }}
+section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"]:hover {{ background: rgba(255,255,255,.06); }}
+section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] {{
+    background: linear-gradient(90deg, rgba(99,102,241,.45), rgba(124,58,237,.25)); }}
+section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] span {{ color:#fff; font-weight:700; }}
+section[data-testid="stSidebar"] [data-testid="stNavSectionHeader"] span,
+section[data-testid="stSidebar"] [data-testid="stNavSectionHeader"] {{ color:#818cf8 !important; font-size:.72rem;
+    letter-spacing:.12em; text-transform:uppercase; font-weight:800; }}
+.brand {{ display:flex; gap:12px; align-items:center; padding:4px 2px 10px 2px; }}
+.brand .logo {{ width:40px; height:40px; border-radius:12px; background:{GRAD['ocean']}; display:flex;
+               align-items:center; justify-content:center; box-shadow:0 6px 18px -6px rgba(6,182,212,.7); }}
+.brand .t1 {{ color:#fff !important; font-weight:800; font-size:.98rem; line-height:1.15; }}
+.brand .t2 {{ color:#94a3b8 !important; font-size:.74rem; }}
+.side-status {{ font-size:.8rem; line-height:1.9; }}
+.side-status .dot {{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; }}
 
-/* number cards */
-.kpi {{ background:{PANEL}; border:1px solid {LINE}; border-radius:16px; padding:14px 16px; height:100%;
-        box-shadow: 0 1px 2px rgba(15,23,42,.04); }}
-.kpi .label {{ color:{MUTED}; font-size:.76rem; text-transform:uppercase; letter-spacing:.07em; font-weight:700; }}
-.kpi .value {{ color:{INK}; font-size:1.6rem; font-weight:800; margin-top:2px; line-height:1.2; }}
-.kpi .sub {{ color:{MUTED}; font-size:.83rem; margin-top:3px; line-height:1.35; }}
+/* ---- page header with animated gradient and waves ---- */
+.hdr {{ position:relative; overflow:hidden; border-radius:22px; padding:26px 30px 44px 30px; margin-bottom:18px; color:#fff;
+       background: linear-gradient(120deg,#312e81,#4f46e5,#0891b2,#7c3aed); background-size: 300% 300%;
+       animation: hdrflow 14s ease infinite; box-shadow: 0 18px 40px -22px rgba(79,70,229,.8); }}
+.hdr.ocean {{ background: linear-gradient(120deg,#0c4a6e,#0284c7,#06b6d4,#0d9488); background-size:300% 300%; }}
+.hdr.emerald {{ background: linear-gradient(120deg,#064e3b,#059669,#14b8a6,#0891b2); background-size:300% 300%; }}
+.hdr.violet {{ background: linear-gradient(120deg,#4c1d95,#7c3aed,#c026d3,#db2777); background-size:300% 300%; }}
+.hdr.amber {{ background: linear-gradient(120deg,#7c2d12,#ea580c,#f59e0b,#db2777); background-size:300% 300%; }}
+.hdr.slate {{ background: linear-gradient(120deg,#0f172a,#334155,#475569,#4f46e5); background-size:300% 300%; }}
+@keyframes hdrflow {{ 0% {{ background-position:0% 50%; }} 50% {{ background-position:100% 50%; }} 100% {{ background-position:0% 50%; }} }}
+.hdr .kicker {{ font-size:.74rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase; opacity:.85; }}
+.hdr h1 {{ color:#fff; margin:4px 0 6px 0; font-size:2.0rem; font-weight:800; }}
+.hdr p {{ margin:0; max-width:900px; font-size:1.02rem; line-height:1.55; opacity:.95; }}
+.hdr .waves {{ position:absolute; left:0; bottom:0; width:100%; height:46px; }}
+.hdr .waves .p use {{ animation: wave 9s cubic-bezier(.55,.5,.45,.5) infinite; }}
+.hdr .waves .p use:nth-child(2) {{ animation-delay:-3s; animation-duration:12s; }}
+.hdr .waves .p use:nth-child(3) {{ animation-delay:-5s; animation-duration:16s; }}
+@keyframes wave {{ 0% {{ transform: translate3d(-90px,0,0); }} 100% {{ transform: translate3d(85px,0,0); }} }}
 
-.pill {{ display:inline-block; padding:2px 10px; border-radius:999px; font-size:.76rem; font-weight:700;
-        margin:2px 4px 2px 0; }}
-.pill.ok {{ color:#15803d; background:#dcfce7; }}
-.pill.warn {{ color:#b45309; background:#fef3c7; }}
-.pill.bad {{ color:#b91c1c; background:#fee2e2; }}
-.pill.info {{ color:#1d4ed8; background:#dbeafe; }}
-.pill.violet {{ color:#6d28d9; background:#ede9fe; }}
+/* ---- section titles ---- */
+.sec {{ margin: 18px 0 8px 0; }}
+.sec .t {{ font-size:1.15rem; font-weight:800; color:{INK}; }}
+.sec .s {{ font-size:.9rem; color:{MUTED}; margin-top:2px; }}
 
-/* the big state banner */
-.banner {{ border-radius:18px; padding:16px 20px; margin:6px 0 12px 0; border:2px solid; display:flex; gap:14px;
-          align-items:center; }}
-.banner .icon {{ font-size:2rem; line-height:1; }}
-.banner .title {{ font-size:1.3rem; font-weight:800; }}
-.banner .text {{ color:{INK}; margin-top:2px; }}
-.banner.normal {{ border-color:#86efac; background:#f0fdf4; }} .banner.normal .title {{ color:#15803d; }}
-.banner.water {{ border-color:#fca5a5; background:#fef2f2; animation: pulse 1.6s ease-in-out infinite; }}
-.banner.water .title {{ color:{BAD}; }}
-.banner.sensor {{ border-color:#fcd34d; background:#fffbeb; }} .banner.sensor .title {{ color:#b45309; }}
-.banner.idle {{ border-color:{LINE}; background:{PANEL}; }} .banner.idle .title {{ color:{MUTED}; }}
-@keyframes pulse {{ 0%,100% {{ box-shadow:0 0 0 0 rgba(220,38,38,0); }} 50% {{ box-shadow:0 0 0 6px rgba(220,38,38,.12); }} }}
+/* ---- gradient KPI tiles with 3D hover ---- */
+.tiles {{ display:grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap:14px; margin:4px 0 8px 0;
+         perspective: 900px; }}
+.tile {{ border-radius:18px; padding:16px 18px; color:#fff; min-height:118px; position:relative; overflow:hidden;
+        transform-style:preserve-3d; transition: transform .35s ease, box-shadow .35s ease;
+        box-shadow: 0 12px 28px -18px rgba(15,23,42,.65); }}
+.tile:hover {{ transform: rotateX(7deg) rotateY(-7deg) translateY(-3px); box-shadow: 0 22px 36px -18px rgba(15,23,42,.7); }}
+.tile:after {{ content:""; position:absolute; right:-40px; top:-40px; width:130px; height:130px; border-radius:50%;
+              background: rgba(255,255,255,.14); }}
+.tile .l {{ font-size:.72rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; opacity:.9; }}
+.tile .v {{ font-size:1.85rem; font-weight:800; margin:4px 0 2px 0; line-height:1.15; }}
+.tile .n {{ font-size:.82rem; opacity:.92; line-height:1.35; }}
 
-.card {{ background:{PANEL}; border:1px solid {LINE}; border-radius:16px; padding:14px 18px; margin-bottom:12px;
-        box-shadow: 0 1px 2px rgba(15,23,42,.04); }}
-.card .h {{ margin:0 0 6px 0; font-size:1.0rem; font-weight:800; color:{INK}; }}
+/* ---- white cards ---- */
+.card {{ background:{PANEL}; border:1px solid {LINE}; border-radius:18px; padding:16px 18px; margin-bottom:12px;
+        box-shadow: 0 1px 3px rgba(15,23,42,.05); }}
+.card .h {{ font-weight:800; font-size:1rem; color:{INK}; margin-bottom:6px; }}
 .muted {{ color:{MUTED}; }}
-.report {{ white-space:pre-wrap; font-family: "Cascadia Mono", Consolas, monospace; font-size:.85rem; color:{INK};
-          background:#f8fafc; border:1px solid {LINE}; border-radius:12px; padding:12px 14px; }}
-.logrow {{ border-bottom:1px solid {LINE}; padding:7px 2px; font-size:.9rem; }}
-.logrow:last-child {{ border-bottom:none; }}
-
-/* pipeline / flow */
-.flow {{ display:flex; flex-wrap:wrap; gap:8px; align-items:stretch; }}
-.flow .node {{ background:{PANEL}; border:1px solid {LINE}; border-radius:14px; padding:10px 12px; min-width:130px; flex:1; }}
-.flow .node b {{ color:{ACCENT}; font-size:.76rem; text-transform:uppercase; letter-spacing:.06em; }}
-.flow .arrow {{ color:{MUTED}; font-size:1.3rem; align-self:center; }}
-
-/* numbered steps */
-.steps {{ display:grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap:12px; margin:6px 0 14px 0; }}
-.step {{ background:{PANEL}; border:1px solid {LINE}; border-radius:18px; padding:16px; position:relative;
-        box-shadow: 0 1px 2px rgba(15,23,42,.04); }}
-.step .n {{ width:34px; height:34px; border-radius:50%; color:#fff; font-weight:800; display:flex; align-items:center;
-           justify-content:center; margin-bottom:8px; }}
-.step .t {{ font-weight:800; font-size:1.02rem; margin-bottom:4px; color:{INK}; }}
-.step .d {{ color:{MUTED}; font-size:.9rem; line-height:1.45; }}
-.step .ex {{ margin-top:8px; font-size:.84rem; color:{INK}; background:#f8fafc; border-radius:10px; padding:6px 9px; }}
-
-/* hardware / part cards */
-.part {{ background:{PANEL}; border:1px solid {LINE}; border-radius:18px; padding:16px 18px; height:100%;
-        border-top:6px solid var(--c); box-shadow: 0 1px 2px rgba(15,23,42,.04); }}
-.part .head {{ display:flex; gap:12px; align-items:center; margin-bottom:8px; }}
-.part .emoji {{ font-size:2rem; }}
-.part .name {{ font-weight:800; font-size:1.1rem; color:{INK}; }}
-.part .model {{ color:{MUTED}; font-size:.82rem; }}
-.part .row {{ margin:7px 0; font-size:.92rem; line-height:1.45; color:{INK}; }}
-.part .row .lab {{ display:block; color:var(--c); font-size:.72rem; text-transform:uppercase; letter-spacing:.07em;
-                   font-weight:800; }}
-.part code {{ background:#f1f5f9; color:{INK}; padding:1px 5px; border-radius:6px; font-size:.82rem; }}
-
-/* comparison */
-.vs {{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }}
-.vs .col {{ border-radius:18px; padding:16px 18px; border:1px solid {LINE}; background:{PANEL}; }}
-.vs .col.old {{ border-top:6px solid #94a3b8; }} .vs .col.new {{ border-top:6px solid {ACCENT}; }}
-.vs .col .h {{ margin:0 0 8px 0; font-weight:800; font-size:1.05rem; color:{INK}; }}
-.vs .col li {{ margin:4px 0; }}
-@media (max-width: 800px) {{ .vs {{ grid-template-columns: 1fr; }} }}
-
-/* status chips */
-.chips {{ display:flex; gap:8px; flex-wrap:wrap; margin:4px 0 12px 0; }}
-.chip {{ border-radius:999px; padding:6px 12px; font-size:.86rem; font-weight:600; background:{PANEL};
-        border:1px solid {LINE}; color:{INK}; }}
-.chip.on {{ border-color:#86efac; background:#f0fdf4; }} .chip.off {{ border-color:#fde68a; background:#fffbeb; }}
-.chip .s {{ color:{MUTED}; font-weight:500; }}
-
-.guide {{ background:#eff6ff; border:1px solid #bfdbfe; border-radius:16px; padding:12px 18px; margin:4px 0 14px 0; }}
-.guide .t {{ color:#1d4ed8; font-weight:800; font-size:.92rem; margin-bottom:4px; }}
-.guide ol {{ margin:0 0 0 18px; padding:0; }} .guide li {{ margin:3px 0; color:{INK}; }}
-.explain {{ color:{MUTED}; font-size:.87rem; margin:-2px 0 8px 2px; line-height:1.45; }}
-.status {{ display:flex; gap:20px; flex-wrap:wrap; align-items:center; padding:9px 16px; border-radius:14px;
-           background:{PANEL}; border:1px solid {LINE}; margin:6px 0 10px 0; font-size:.92rem; }}
-.status b {{ color:{INK}; }} .status span {{ color:{MUTED}; }}
-.check {{ display:flex; gap:10px; flex-wrap:wrap; margin:4px 0 12px 0; }}
-.check .item {{ border:1px solid {LINE}; border-radius:999px; padding:6px 12px; color:{MUTED}; font-size:.88rem;
-               background:{PANEL}; font-weight:600; }}
-.check .item.done {{ border-color:#86efac; color:#15803d; background:#f0fdf4; }}
-.gloss {{ display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:10px; }}
-.gloss div {{ background:{PANEL}; border:1px solid {LINE}; border-radius:14px; padding:10px 14px; font-size:.9rem; }}
-.gloss b {{ color:{INK}; }}
-.big {{ font-size:1.08rem; line-height:1.6; }}
-
-section[data-testid="stSidebar"] {{ background: #ffffff; border-right:1px solid {LINE}; }}
-div[data-testid="stVerticalBlockBorderWrapper"] {{ border-radius:18px; }}
-div[data-testid="stMetric"] {{ background:{PANEL}; border:1px solid {LINE}; border-radius:16px; padding:10px 14px; }}
-button[kind="primary"] {{ font-weight:700; }}
-.st-key-cr_qbox_ask {{ background:#f5f3ff; border-radius:12px; padding:4px 8px; }}
-.st-key-cr_qbox_ask p {{ font-size:1.02rem; }}
+div[data-testid="stVerticalBlockBorderWrapper"] {{ border-radius:18px; background:{PANEL}; }}
 div[data-testid="stExpander"] details {{ background:{PANEL}; border-radius:14px; }}
 
-/* Smooth live updates: Streamlit dims ("stale") every element while a page refreshes – that was the
-   flicker. Keep everything fully visible and hide the running indicator. */
+/* ---- control captions ---- */
+.cap {{ color:{MUTED}; font-size:.78rem; line-height:1.35; margin-top:-6px; }}
+.panel-title {{ font-size:.74rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:{ACCENT};
+               margin-bottom:4px; }}
+
+/* ---- badges ---- */
+.badge {{ display:inline-block; padding:3px 10px; border-radius:999px; font-size:.72rem; font-weight:800;
+         letter-spacing:.04em; margin:2px 4px 2px 0; }}
+.badge.ok {{ color:#065f46; background:#d1fae5; }} .badge.warn {{ color:#92400e; background:#fef3c7; }}
+.badge.bad {{ color:#991b1b; background:#fee2e2; }} .badge.info {{ color:#3730a3; background:#e0e7ff; }}
+.badge.violet {{ color:#5b21b6; background:#ede9fe; }} .badge.grey {{ color:#334155; background:#e2e8f0; }}
+
+/* ---- the system state bar ---- */
+.state {{ display:flex; align-items:center; gap:16px; border-radius:18px; padding:14px 20px; margin:8px 0 12px 0;
+         color:#fff; box-shadow:0 14px 30px -20px rgba(15,23,42,.7); }}
+.state .lbl {{ font-size:.7rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; opacity:.85; }}
+.state .ttl {{ font-size:1.25rem; font-weight:800; }}
+.state .txt {{ font-size:.92rem; opacity:.95; }}
+.state .pulse {{ width:14px; height:14px; border-radius:50%; background:#fff; flex:none; box-shadow:0 0 0 0 rgba(255,255,255,.7);
+                animation: ping 1.8s infinite; }}
+.state.normal {{ background:{GRAD['emerald']}; }} .state.water {{ background:{GRAD['red']}; }}
+.state.sensor {{ background:{GRAD['amber']}; }} .state.idle {{ background:{GRAD['slate']}; }}
+.state.water .pulse {{ animation-duration: .9s; }}
+@keyframes ping {{ 0% {{ box-shadow:0 0 0 0 rgba(255,255,255,.7); }} 100% {{ box-shadow:0 0 0 14px rgba(255,255,255,0); }} }}
+
+/* ---- meta strip ---- */
+.meta {{ display:flex; gap:22px; flex-wrap:wrap; align-items:center; padding:10px 16px; border-radius:14px;
+        background:{PANEL}; border:1px solid {LINE}; font-size:.88rem; }}
+.meta span {{ color:{MUTED}; }} .meta b {{ color:{INK}; }}
+
+/* ---- pipeline ---- */
+.pipe {{ display:grid; grid-template-columns: repeat(auto-fit, minmax(170px,1fr)); gap:12px; margin:6px 0 10px 0; }}
+.pipe .st {{ background:{PANEL}; border:1px solid {LINE}; border-radius:16px; padding:14px; position:relative;
+            border-top:5px solid var(--c); box-shadow: 0 1px 3px rgba(15,23,42,.05); }}
+.pipe .n {{ font-size:.7rem; font-weight:800; letter-spacing:.12em; color:var(--c); }}
+.pipe .t {{ font-weight:800; margin:2px 0 4px 0; color:{INK}; }}
+.pipe .d {{ font-size:.86rem; color:{MUTED}; line-height:1.45; }}
+
+/* ---- component cards ---- */
+.comp {{ background:{PANEL}; border:1px solid {LINE}; border-radius:18px; padding:16px 18px; height:100%;
+        box-shadow: 0 1px 3px rgba(15,23,42,.05); }}
+.comp .top {{ display:flex; gap:12px; align-items:center; margin-bottom:8px; }}
+.comp .mono {{ width:46px; height:46px; border-radius:14px; color:#fff; font-weight:800; font-size:.8rem; display:flex;
+              align-items:center; justify-content:center; flex:none; }}
+.comp .nm {{ font-weight:800; font-size:1.05rem; color:{INK}; }}
+.comp .md {{ font-size:.8rem; color:{MUTED}; }}
+.comp .row {{ font-size:.9rem; line-height:1.45; margin:6px 0; color:{INK}; }}
+.comp .row .k {{ display:block; font-size:.68rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--c); }}
+.comp code {{ background:#eef2ff; color:#3730a3; padding:1px 6px; border-radius:6px; font-size:.8rem; }}
+
+/* ---- glossary ---- */
+.gloss {{ display:grid; grid-template-columns: repeat(auto-fit, minmax(270px,1fr)); gap:10px; }}
+.gloss div {{ background:{PANEL}; border:1px solid {LINE}; border-left:4px solid {ACCENT}; border-radius:12px;
+             padding:10px 14px; font-size:.88rem; }}
+
+/* ---- steps checklist ---- */
+.steps {{ display:flex; gap:10px; flex-wrap:wrap; margin:4px 0 10px 0; }}
+.steps .s {{ flex:1; min-width:170px; border-radius:14px; padding:10px 12px; border:1px solid {LINE}; background:{PANEL};
+            font-size:.86rem; color:{MUTED}; }}
+.steps .s b {{ display:block; color:{INK}; }}
+.steps .s.done {{ border-color:#6ee7b7; background:#ecfdf5; }}
+.steps .s .k {{ font-size:.68rem; font-weight:800; letter-spacing:.1em; color:{ACCENT}; }}
+.steps .s.done .k {{ color:{OK}; }}
+
+.report {{ white-space:pre-wrap; font-family: "Cascadia Mono", Consolas, monospace; font-size:.84rem; color:{INK};
+          background:#f8fafc; border:1px solid {LINE}; border-radius:12px; padding:12px 14px; max-height:460px;
+          overflow:auto; }}
+.logrow {{ border-bottom:1px solid {LINE}; padding:7px 2px; font-size:.88rem; }}
+.logrow:last-child {{ border-bottom:none; }}
+.review {{ font-size:1.02rem; font-weight:700; color:{INK}; }}
+.st-key-review_open {{ background: linear-gradient(90deg,#f5f3ff,#eef2ff); border-radius:12px; padding:2px 8px; }}
+
+button[kind="primary"] {{ background:{GRAD['indigo']} !important; border:none !important; font-weight:700; }}
+button[kind="primary"]:hover {{ filter:brightness(1.08); }}
+button {{ font-weight:600 !important; }}
+
+/* Live updates without flicker: never dim elements while a fragment refreshes. */
 [data-stale="true"], .stale-element, [data-testid="stElementContainer"] {{ opacity: 1 !important; transition: none !important; }}
 [data-testid="stStatusWidget"], [data-testid="stDecoration"] {{ visibility: hidden; }}
 .js-plotly-plot, .plot-container {{ transition: none !important; }}
@@ -177,11 +209,12 @@ def setup_page() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
     tmpl = go.layout.Template(pio.templates["plotly_white"])
     tmpl.layout.update(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", colorway=SERIES,
-                       font=dict(color=INK, size=12, family="Plus Jakarta Sans, Segoe UI, sans-serif"),
-                       title=dict(font=dict(size=14)), margin=dict(l=10, r=10, t=40, b=10),
-                       xaxis=dict(gridcolor="#edf1f7", zerolinecolor=LINE, linecolor=LINE),
-                       yaxis=dict(gridcolor="#edf1f7", zerolinecolor=LINE, linecolor=LINE),
-                       legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h", y=-0.18))
+                       font=dict(color=INK, size=12, family="Inter, Segoe UI, sans-serif"),
+                       title=dict(font=dict(size=14, color=INK), x=0.01), margin=dict(l=10, r=10, t=44, b=10),
+                       xaxis=dict(gridcolor="#edf1f8", zerolinecolor=LINE, linecolor=LINE),
+                       yaxis=dict(gridcolor="#edf1f8", zerolinecolor=LINE, linecolor=LINE),
+                       hoverlabel=dict(bgcolor="#0b1324", font=dict(color="#fff")),
+                       legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h", y=-0.2))
     pio.templates["ewsv2"] = tmpl
     pio.templates.default = "ewsv2"
 
@@ -190,93 +223,91 @@ def esc(x) -> str:
     return html.escape(str(x))
 
 
-def hero(title: str, text: str, eyebrow: str = "", color: str = "") -> None:
-    eb = f'<div class="eyebrow">{esc(eyebrow)}</div>' if eyebrow else ""
-    st.markdown(f'<div class="hero {color}">{eb}<h1>{esc(title)}</h1><p>{esc(text)}</p></div>', unsafe_allow_html=True)
+# ---------------------------------------------------------------------------------------------- blocks
+
+def header(title: str, purpose: str, kicker: str = "", color: str = "") -> None:
+    k = f'<div class="kicker">{esc(kicker)}</div>' if kicker else ""
+    st.markdown(f'<div class="hdr {color}">{k}<h1>{esc(title)}</h1><p>{esc(purpose)}</p>{WAVES}</div>',
+                unsafe_allow_html=True)
 
 
-def kpi(label: str, value: str, sub: str = "") -> str:
-    return (f'<div class="kpi"><div class="label">{esc(label)}</div><div class="value">{esc(value)}</div>'
-            f'<div class="sub">{esc(sub)}</div></div>')
+hero = header          # older name
+
+
+def section(title: str, sub: str = "") -> None:
+    s = f'<div class="s">{sub}</div>' if sub else ""
+    st.markdown(f'<div class="sec"><div class="t">{esc(title)}</div>{s}</div>', unsafe_allow_html=True)
+
+
+def tiles(items: list[tuple]) -> None:
+    """Gradient KPI tiles: (label, value, note, gradient-name)."""
+    h = ""
+    for it in items:
+        label, value, note = it[0], it[1], it[2]
+        g = GRAD.get(it[3] if len(it) > 3 else "indigo", GRAD["indigo"])
+        h += (f'<div class="tile" style="background:{g}"><div class="l">{esc(label)}</div>'
+              f'<div class="v">{esc(value)}</div><div class="n">{esc(note)}</div></div>')
+    st.markdown(f'<div class="tiles">{h}</div>', unsafe_allow_html=True)
 
 
 def kpi_row(items: list[tuple[str, str, str]]) -> None:
-    cols = st.columns(len(items))
-    for c, (a, b, d) in zip(cols, items):
-        c.markdown(kpi(a, b, d), unsafe_allow_html=True)
+    """Older helper: same as tiles with rotating colours."""
+    names = ["indigo", "ocean", "emerald", "amber", "violet", "rose"]
+    tiles([(a, b, c, names[i % len(names)]) for i, (a, b, c) in enumerate(items)])
 
 
-def pill(text: str, kind: str = "info") -> str:
-    return f'<span class="pill {kind}">{esc(text)}</span>'
+def kpi(label: str, value: str, sub: str = "") -> str:
+    return (f'<div class="tile" style="background:{GRAD["indigo"]}"><div class="l">{esc(label)}</div>'
+            f'<div class="v">{esc(value)}</div><div class="n">{esc(sub)}</div></div>')
 
 
-ICONS = {"normal": "✅", "water": "🚨", "sensor": "🔧", "idle": "⏳"}
+def cap(text: str) -> None:
+    """Caption under a control: what it does."""
+    st.markdown(f'<div class="cap">{text}</div>', unsafe_allow_html=True)
+
+
+def panel_title(text: str) -> None:
+    st.markdown(f'<div class="panel-title">{esc(text)}</div>', unsafe_allow_html=True)
+
+
+def badge(text: str, kind: str = "info") -> str:
+    return f'<span class="badge {kind}">{esc(text)}</span>'
+
+
+pill = badge           # older name
+
+
+def state(kind: str, title: str, text: str = "", label: str = "System status") -> None:
+    st.markdown(f'<div class="state {kind}"><div class="pulse"></div><div><div class="lbl">{esc(label)}</div>'
+                f'<div class="ttl">{esc(title)}</div><div class="txt">{esc(text)}</div></div></div>',
+                unsafe_allow_html=True)
 
 
 def banner(kind: str, title: str, text: str = "") -> None:
-    st.markdown(f'<div class="banner {kind}"><div class="icon">{ICONS.get(kind, "")}</div><div>'
-                f'<div class="title">{esc(title)}</div><div class="text">{esc(text)}</div></div></div>',
-                unsafe_allow_html=True)
+    state(kind, title, text)
 
 
-def explanations_on() -> bool:
-    return st.session_state.get("explain", True)
+def meta(parts: list[tuple[str, str]]) -> None:
+    h = "".join(f"<div><span>{esc(a)}</span>&nbsp; <b>{esc(b)}</b></div>" for a, b in parts)
+    st.markdown(f'<div class="meta">{h}</div>', unsafe_allow_html=True)
 
 
-def guide(title: str, steps: list[str]) -> None:
-    """A numbered "how to use this page" box (hidden when explanations are switched off)."""
-    if not explanations_on():
-        return
-    items = "".join(f"<li>{s}</li>" for s in steps)          # steps may contain simple HTML (bold)
-    st.markdown(f'<div class="guide"><div class="t">{esc(title)}</div><ol>{items}</ol></div>', unsafe_allow_html=True)
+def card(title: str, body_html: str) -> None:
+    st.markdown(f'<div class="card"><div class="h">{esc(title)}</div>{body_html}</div>', unsafe_allow_html=True)
 
 
-def explain(text: str) -> None:
-    """One plain-language line under a chart or panel (hidden when explanations are switched off)."""
-    if explanations_on():
-        st.markdown(f'<div class="explain">{text}</div>', unsafe_allow_html=True)
+def pipeline(stages: list[tuple[str, str]], colors: list[str] | None = None) -> None:
+    colors = colors or [ACCENT, CYAN, OK, WARN, VIOLET, PINK]
+    h = "".join(f'<div class="st" style="--c:{colors[i % len(colors)]}"><div class="n">STAGE {i + 1}</div>'
+                f'<div class="t">{esc(t)}</div><div class="d">{d}</div></div>' for i, (t, d) in enumerate(stages))
+    st.markdown(f'<div class="pipe">{h}</div>', unsafe_allow_html=True)
 
 
-def status(parts: list[tuple[str, str]]) -> None:
-    h = "".join(f"<div><span>{esc(a)}</span> <b>{esc(b)}</b></div>" for a, b in parts)
-    st.markdown(f'<div class="status">{h}</div>', unsafe_allow_html=True)
-
-
-def checklist(items: list[tuple[str, bool]]) -> None:
-    h = "".join(f'<div class="item{" done" if ok else ""}">{"✓" if ok else "○"} {esc(t)}</div>' for t, ok in items)
-    st.markdown(f'<div class="check">{h}</div>', unsafe_allow_html=True)
-
-
-def chips(items: list[tuple[str, bool, str]]) -> None:
-    """Status chips: (name, ready?, short note)."""
-    h = "".join(f'<div class="chip {"on" if ok else "off"}">{"🟢" if ok else "🟡"} {esc(n)} '
-                f'<span class="s">· {esc(note)}</span></div>' for n, ok, note in items)
-    st.markdown(f'<div class="chips">{h}</div>', unsafe_allow_html=True)
-
-
-def steps(items: list[tuple[str, str, str]], colors: list[str] | None = None) -> None:
-    """Numbered step cards: (title, text, example). Text may contain simple HTML."""
-    colors = colors or [ACCENT, "#0891b2", OK, WARN, VIOLET, PINK]
-    h = ""
-    for i, (t, d, ex) in enumerate(items):
-        c = colors[i % len(colors)]
-        h += (f'<div class="step"><div class="n" style="background:{c}">{i + 1}</div><div class="t">{esc(t)}</div>'
-              f'<div class="d">{d}</div>' + (f'<div class="ex">{ex}</div>' if ex else "") + "</div>")
-    st.markdown(f'<div class="steps">{h}</div>', unsafe_allow_html=True)
-
-
-def part_card(emoji: str, name: str, model: str, color: str, rows: list[tuple[str, str]]) -> str:
-    body = "".join(f'<div class="row"><span class="lab">{esc(a)}</span>{b}</div>' for a, b in rows)
-    return (f'<div class="part" style="--c:{color}"><div class="head"><div class="emoji">{emoji}</div><div>'
-            f'<div class="name">{esc(name)}</div><div class="model">{esc(model)}</div></div></div>{body}</div>')
-
-
-def compare(old_title: str, old: list[str], new_title: str, new: list[str]) -> None:
-    o = "".join(f"<li>{x}</li>" for x in old)
-    n = "".join(f"<li>{x}</li>" for x in new)
-    st.markdown(f'<div class="vs"><div class="col old"><div class="h">{esc(old_title)}</div><ul>{o}</ul></div>'
-                f'<div class="col new"><div class="h">{esc(new_title)}</div><ul>{n}</ul></div></div>',
-                unsafe_allow_html=True)
+def component(mono: str, name: str, model: str, color: str, rows: list[tuple[str, str]]) -> str:
+    body = "".join(f'<div class="row"><span class="k">{esc(k)}</span>{v}</div>' for k, v in rows)
+    return (f'<div class="comp" style="--c:{color}"><div class="top"><div class="mono" style="background:{color}">'
+            f'{esc(mono)}</div><div><div class="nm">{esc(name)}</div><div class="md">{esc(model)}</div></div></div>'
+            f'{body}</div>')
 
 
 def glossary(items: list[tuple[str, str]]) -> None:
@@ -284,31 +315,30 @@ def glossary(items: list[tuple[str, str]]) -> None:
     st.markdown(f'<div class="gloss">{h}</div>', unsafe_allow_html=True)
 
 
+def steps(items: list[tuple[str, str, bool]]) -> None:
+    """Checklist of demonstration steps: (title, text, done)."""
+    h = "".join(f'<div class="s{" done" if ok else ""}"><span class="k">{"COMPLETED" if ok else f"STEP {i + 1}"}</span>'
+                f'<b>{esc(t)}</b>{esc(d)}</div>' for i, (t, d, ok) in enumerate(items))
+    st.markdown(f'<div class="steps">{h}</div>', unsafe_allow_html=True)
+
+
+def side_status(items: list[tuple[str, bool, str]]) -> None:
+    h = "".join(f'<div><span class="dot" style="background:{"#34d399" if ok else "#fbbf24"}"></span>{esc(n)}'
+                f' <span style="color:#64748b">· {esc(note)}</span></div>' for n, ok, note in items)
+    st.markdown(f'<div class="side-status">{h}</div>', unsafe_allow_html=True)
+
+
 def steady(fig):
-    """Charts that update in place: keep zoom, no animation."""
+    """Charts that update in place: keep zoom, no animation between refreshes."""
     fig.update_layout(uirevision="keep", transition={"duration": 0})
     return fig
 
 
-def card(title: str, body_html: str) -> None:
-    st.markdown(f'<div class="card"><div class="h">{esc(title)}</div>{body_html}</div>', unsafe_allow_html=True)
-
-
-def flow(nodes: list[tuple[str, str]]) -> None:
-    parts = []
-    for i, (a, b) in enumerate(nodes):
-        if i:
-            parts.append('<span class="arrow">→</span>')
-        parts.append(f'<div class="node"><b>{esc(a)}</b><br>{esc(b)}</div>')
-    st.markdown('<div class="flow">' + "".join(parts) + "</div>", unsafe_allow_html=True)
-
-
-def page_tile(page, emoji: str, title: str, text: str, label: str = "Open") -> None:
-    """A big clickable entry point to another page (falls back to text when the page is unknown, e.g. in tests)."""
+def link_card(page, title: str, text: str, label: str) -> None:
+    """A described entry point to another page."""
     with st.container(border=True):
-        st.markdown(f'<div style="font-size:2rem;line-height:1">{emoji}</div>'
-                    f'<div style="font-weight:800;font-size:1.08rem;margin:6px 0 2px 0">{esc(title)}</div>'
-                    f'<div class="muted" style="font-size:.9rem;min-height:5.2em">{esc(text)}</div>',
+        st.markdown(f'<div style="font-weight:800;font-size:1.05rem;color:{INK}">{esc(title)}</div>'
+                    f'<div class="muted" style="font-size:.88rem;min-height:4.4em;margin:4px 0 6px 0">{esc(text)}</div>',
                     unsafe_allow_html=True)
         if page is not None:
             st.page_link(page, label=label, icon=":material/arrow_forward:")

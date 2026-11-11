@@ -1,71 +1,87 @@
-"""System check: what is connected, what falls back to the computer, and how to fix it."""
+"""System Status: which parts are available on this computer, what replaces the others, and how to fix them."""
 
 from __future__ import annotations
 
 import platform
 import sys
 
+import pandas as pd
 import streamlit as st
 
-from ewsv2 import SEGMENT, __version__
+from ewsv2 import __version__
+from ewsv2.app import charts as C
 from ewsv2.app import services as S
 from ewsv2.app import ui
 from ewsv2.app.views.common import board
 
-
-def _row(name: str, ok: bool, now: str, fallback: str, fix: str = "") -> str:
-    p = ui.pill("ready", "ok") if ok else ui.pill("fallback", "warn")
-    extra = "" if ok else f'<br><span class="muted">Instead: {ui.esc(fallback)}' + (f" · Fix: {ui.esc(fix)}" if fix else "") + "</span>"
-    return f'<div class="logrow">{p} <b>{ui.esc(name)}</b> – {ui.esc(now)}{extra}</div>'
+TOPICS = [("Detection methods", "s1_baselines"), ("Version 1 components on real data", "s2_v1_port"),
+          ("Forecasting", "s3_forecast"), ("Water event or sensor fault", "s4_triage"),
+          ("False-alarm control", "s5_fusion"), ("Explanations", "s6_explain"), ("Incident reports", "s7_reports"),
+          ("Edge device", "s8_edge")]
 
 
 def render() -> None:
-    ui.hero("What is connected", "Every part is optional. This page shows which ones are ready on this computer, "
-            "what the system uses instead of the others, and how to fix them.", eyebrow="Setup", color="slate")
-    ui.guide('How to read this page', [
-        '<b>ready</b> = this part works on this computer now. <b>fallback</b> = it is missing, and the line says what the computer uses instead – the demo still works.',
-        'Plug the Uno in or start Ollama, then press “Look for the board again” or “Check the local LLM again”.',
-    ])
+    ui.header("System Status",
+              "Which parts are available on this computer right now, what the system uses instead of the missing "
+              "ones, and how to connect them.", kicker="Reference · status", color="slate")
     cfg = S.config()
-    c1, c2 = st.columns([1, 1])
-    if c1.button("🔌 Look for the board again", width="stretch"):
-        b = board(connect=False)
-        if b is not None:
-            b._next_try = 0.0
-            b.connect()
-    if c2.button("🤖 Check the local LLM again", width="stretch"):
-        st.session_state.pop("_llm_status", None)
+    with st.container(border=True):
+        ui.panel_title("Actions")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Search for the Arduino again", width="stretch", icon=":material/usb:", key="sy_board"):
+                b = board(connect=False)
+                if b is not None:
+                    b._next_try = 0.0
+                    b.connect()
+            ui.cap("Use after plugging in the board. Close the Arduino Serial Monitor first – it blocks the port.")
+        with c2:
+            if st.button("Check the AI model again", width="stretch", icon=":material/refresh:", key="sy_llm"):
+                st.session_state.pop("_llm_status", None)
+            ui.cap("Use after starting Ollama.")
     data = S.data_status()
     b = board()
     llm_ok, llm_why = st.session_state.get("_llm_status") or S.ollama_status(cfg["llm"]["models"][0], cfg["llm"]["host"])
     st.session_state["_llm_status"] = (llm_ok, llm_why)
-    outs = S.outputs_status()
     parts = b.parts if (b is not None and b.connected) else {}
-    html = "".join([
-        _row("GECCO 2018 data", data["gecco2018"], "files found" if data["gecco2018"] else "no files",
-             "the simulated station", "python -m ewsv2 fetch gecco2018"),
-        _row("GECCO 2019 data", data["gecco2019"], "files found" if data["gecco2019"] else "no files",
-             "the simulated station", "python -m ewsv2 fetch gecco2019"),
-        _row("Arduino Uno", b is not None and b.connected, (b.message if b is not None else "switched off"),
-             "the laptop runs the same logic (identical answers)",
-             "plug it in, upload ewsv2_edge.ino, close the Serial Monitor"),
-        _row("Probe (water)", parts.get("probe", False), "answers" if parts.get("probe") else "not detected",
-             "the simulated probe", "wires AO→A0, VCC→A2, GND→GND"),
-        _row("Touch sensor", parts.get("touch", False), "answers" if parts.get("touch") else "not detected",
-             "the 'False alarm' button on screen", "wires SIG→D3, VCC→D4, GND→GND"),
-        _row("DHT11", parts.get("dht", False), "answers" if parts.get("dht") else "not detected",
-             "left out", "wires DATA→A1, VCC→5V, GND→GND"),
-        _row("RFID reader (not used)", parts.get("rfid", False), "not part of this project", "nothing – it is not needed",
-             "optional: needs soldered pins"),
-        _row("AI writer (Ollama)", llm_ok, "ready" if llm_ok else
-             ("Ollama is not running" if "refused" in str(llm_why).lower() else llm_why), "template reports",
-             "start Ollama; ollama pull " + cfg["llm"]["models"][0]),
-        _row("Version 1 dashboard", S.url_alive(cfg["dashboard"]["v1_url"]), cfg["dashboard"]["v1_url"],
-             "published results on the Version 1 page", "python -m ewsv2 dashboard starts it if venv exists"),
-    ])
-    ui.card("Parts", html)
-    seg = "".join(_row(f"{k} results", v, "on this computer" if v else "not run here", "bundled snapshot of the measured results",
-                       "run that segment's command") for k, v in outs.items())
-    ui.card("Experiment outputs", seg)
-    ui.card("Software", f'ewsv2 {ui.esc(__version__)} (built up to {ui.esc(SEGMENT)}) · Python {ui.esc(sys.version.split()[0])} · '
-            f'{ui.esc(platform.system())} {ui.esc(platform.release())}')
+    v1_ok = S.url_alive(cfg["dashboard"]["v1_url"])
+    rows = [
+        ("Utility data A (2018)", data["gecco2018"], "files found" if data["gecco2018"] else "files missing",
+         "synthetic station", "python -m ewsv2 fetch gecco2018"),
+        ("Utility data B (2019)", data["gecco2019"], "files found" if data["gecco2019"] else "files missing",
+         "synthetic station", "python -m ewsv2 fetch gecco2019"),
+        ("Arduino Uno", b is not None and b.connected, b.message if b is not None else "hardware access switched off",
+         "laptop runs the same logic", "plug in, upload ewsv2_edge.ino, close the Serial Monitor"),
+        ("Conductivity probe", parts.get("probe", False), "answering" if parts.get("probe") else "not detected",
+         "simulation", "AO → A0, VCC → A2, GND → GND"),
+        ("Touch sensor", parts.get("touch", False), "answering" if parts.get("touch") else "not detected",
+         "on-screen Report false alarm button", "SIG → D3, VCC → D4, GND → GND"),
+        ("Temperature/humidity sensor", parts.get("dht", False), "answering" if parts.get("dht") else "not detected",
+         "values shown as unavailable", "DATA → A1, VCC → 5V, GND → GND"),
+        ("AI report writer (Ollama)", llm_ok, "ready" if llm_ok else
+         ("Ollama is not running" if "refused" in str(llm_why).lower() else str(llm_why)[:80]),
+         "standard template reports", "start Ollama; ollama pull " + cfg["llm"]["models"][0]),
+        ("Version 1 dashboard", v1_ok, cfg["dashboard"]["v1_url"], "published results on the Version 1 page",
+         "started automatically when venv exists"),
+    ]
+    ready = sum(1 for r in rows if r[1])
+    a, bcol = st.columns([1, 2.2])
+    with a:
+        C.plot(C.donut(["available", "replaced"], [ready, len(rows) - ready], [ui.OK, "#fbbf24"], "Components",
+                       f"{ready}/{len(rows)}", height=300), key="sy_donut")
+        ui.cap("Replaced components do not stop the system; the dashboard uses the alternative listed in the table.")
+    with bcol:
+        st.dataframe(pd.DataFrame([{"Component": n, "Status": "Available" if ok else "Replaced", "Details": d,
+                                    "Used instead": "–" if ok else alt, "How to connect": "–" if ok else fix}
+                                   for n, ok, d, alt, fix in rows]), hide_index=True, width="stretch", height=330)
+    ui.section("Analysis results on this computer",
+               "Result files produced by the experiment commands. Missing ones are replaced by the bundled results.")
+    out = []
+    for name, sub in TOPICS:
+        d = S.OUTPUT_DIR / sub
+        files = list(d.rglob("*.csv")) + list(d.rglob("*.json")) if d.exists() else []
+        out.append({"Analysis": name, "Status": "Available" if files else "Not run on this computer",
+                    "Files": len(files)})
+    st.dataframe(pd.DataFrame(out), hide_index=True, width="stretch")
+    ui.cap(f"Software version {__version__} · Python {sys.version.split()[0]} · {platform.system()} "
+           f"{platform.release()}")

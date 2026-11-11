@@ -29,6 +29,19 @@ SENSOR_NAMES = {
 }
 
 
+SOURCE_LABELS = {
+    "gecco2018": "Utility data A – 2018 test period (9 sensors)",
+    "gecco2019": "Utility data B – 2019 test period (6 sensors)",
+    "simulated": "Synthetic station (generated, no data files needed)",
+}
+SHORT_LABELS = {"gecco2018": "Utility data A (2018)", "gecco2019": "Utility data B (2019)",
+                "simulated": "Synthetic station"}
+
+
+def source_label(s: str, short: bool = False) -> str:
+    return (SHORT_LABELS if short else SOURCE_LABELS).get(s, s)
+
+
 def config(set_: dict | None = None) -> dict:
     return load_config("s9_dashboard", set_ or {})
 

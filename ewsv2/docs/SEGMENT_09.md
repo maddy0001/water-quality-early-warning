@@ -6,25 +6,35 @@ S4–S8 · **Feeds:** S10 (hand-over, final diagram, paper tables)
 **Shows:** all contributions in one place, live; experiment **E12** (the Uno answers minute by minute
 next to the laptop in the dashboard)
 
-## 0. Update 9.2 – a friendly dashboard anyone can follow
+## 0. Update 9.3 – professional operator dashboard (complete redesign)
 
-You said you still could not tell what the dashboard does, what the three sensors are for, or what
-version 2 changed. The dashboard was rebuilt around **questions a visitor asks**, with a bright theme.
-Every function from 9.1 is still there (same replay engine, same live lab, same Uno check, same reports).
+Your feedback on 9.2: still confusing, emojis, unclear buttons and toggles, unclear names ("gecco 18/19",
+"who answers", "answer key"), a missing report download, too few charts, the stored experiment results not
+shown, and a request for a professional, vibrant look with 3D and animation. Everything was redesigned:
 
-| Before | Now |
+| Topic | Now |
 |---|---|
-| Dark theme, technical names | Bright light theme. One colour = one meaning on every page: 🟢 all good, 🔴 the **water** changed, 🟡 a **sensor** looks broken, 🟣 you / the AI |
-| Overview full of numbers | **Start here**: the project in one sentence, four big buttons (*How it works*, *Watch a real station*, *Try the sensors*, *See the results*), "Version 2 in 30 seconds", v1 → v2 side by side, and what is connected |
-| Nothing explained the hardware or the LLM | New **How it works** page with tabs: *The idea* (water vs sensor, the smoke-alarm example), *5 steps*, *The hardware* (one card each for the Arduino, water probe, touch pad, DHT11: what it measures, its job in the demo, wires, what replaces it), *The AI writer*, *What's new in v2* (S0–S9, one question and one answer each), *If something is missing*, *Words* (glossary) |
-| "Control room", "Live sensor lab", "System check" | **Watch a real station**, **Try the sensors**, **What is connected**; "Incident reports" → **AI incident reports** |
-| 9 small sensor charts always on screen | Inside a "See all sensors" box; the main screen is banner → 4 cards → question → two charts |
-| Results: tabs of numbers | Each tab starts with **the answer in one bold sentence**; method names in plain words |
-| Live lab: technical banner names | "Water alarm – the water changed", "Sensor problem – not a water alarm", a 4-step checklist, and chips showing which real part answers |
+| Look | Deep-indigo sidebar with logo, animated gradient page headers with moving waves, gradient KPI tiles that tilt in 3D on hover, Inter font, no emojis anywhere |
+| Pages (9) | **Monitor:** Overview, Operations Console, Sensor Lab · **Analyze:** Performance Analytics, Data Explorer, Incident Reports · **Reference:** System Guide, Version 1 Baseline, System Status |
+| Every control | Has a one-line caption under it saying exactly what it does |
+| Data names | "Utility data A – 2018 test period (9 sensors)", "Utility data B – 2019 test period (6 sensors)", "Synthetic station (generated, no data files needed)" |
+| "Who answers the alarms" | Removed from the main screen. The replay always asks you; *Automatic review* is an advanced option with an explanation |
+| "Answer key" | Now **Recorded outcome**: what really happened in the data, never seen by the detection system |
+| Report download | Fixed and extended: **.txt** and printable **.html** (Print → Save as PDF) in the Operations Console, the Sensor Lab and the Incident Reports page; alarm log and all reports as **.csv** |
+| Charts | Live gauge (ECharts) for the anomaly score, area timeline, polar sensor chart, liquid-level ball and gauges in the Sensor Lab, Sankey flow diagrams, heatmaps, bubble charts, radar, sunburst, rotating 3D sensor space |
+| Experiment results | **Performance Analytics** reads every result file in `outputs_v2` (7 tabs: evaluation method, detection methods, water event or sensor fault, false-alarm control, explanations, incident reports, edge device); each tab opens with a one-paragraph finding and every table can be downloaded |
+| Data | **Data Explorer**: time series with zoom strip, 3D sensor space with a Rotate button, correlation heatmap, which sensors react to events, data quality |
+| Removed | Build history (segment list), RFID mentions, the help-box toggle, emojis |
 
-The page names changed, the addresses did not (`/control-room`, `/live-lab` … still work).
+New packages (pinned, with their JavaScript bundled inside, so they work offline):
+`streamlit-echarts==0.4.0`, `pyecharts==2.0.6`, `simplejson==3.19.3`. If they are ever missing, every gauge
+automatically falls back to a Plotly chart – nothing breaks.
 
-## 0a. Update 9.1 – calmer and clearer (after your first run)
+## 0a. Update 9.2 – first friendly version (superseded by 9.3)
+
+Replaced by 9.3 above.
+
+## 0b. Update 9.1 – calmer and clearer (after your first run)
 
 You said the dashboard was confusing and "glitched" every time the data changed. Both are fixed:
 
@@ -140,11 +150,11 @@ cd "C:\Users\THE GOD\Documents\Github\water-quality-early-warning"
 venv2\Scripts\Activate.ps1
 
 Remove-Item -Recurse -Force ewsv2
-Expand-Archive -Path "$HOME\Downloads\ewsv2_S9_2.zip" -DestinationPath . -Force
-pip install -r ewsv2\requirements.txt          # adds streamlit, plotly, pyarrow (one time, ~1 min)
+Expand-Archive -Path "$HOME\Downloads\ewsv2_S9_3.zip" -DestinationPath . -Force
+pip install -r ewsv2\requirements.txt          # 9.3 adds streamlit-echarts, pyecharts, simplejson
 
 python -m ewsv2 info                            # built up to segment S9
-python -m pytest ewsv2\tests -q                 # 141 passed, 4 skipped (cloud: 145 passed)
+python -m pytest ewsv2\tests -q                 # 142 passed, 4 skipped (cloud: 146 passed)
 ```
 
 ### 4b. Upload the updated sketch (one small change: DHT11 timing)
@@ -168,23 +178,20 @@ python -m ewsv2 dashboard --set dashboard.with_v1=false     # only version 2
 
 ### 4d. A 5-minute demo script
 
-1. **Start here** (30 s): read the big header aloud – "is it the water or the sensor?". Point at the four
-   cards of *Version 2 in 30 seconds* and the green/yellow chips of what is connected.
-2. **How it works** (1 min): *The idea* tab (red card vs yellow card), then *The hardware* tab – show
-   the real parts on the table next to their cards.
-3. **Watch a real station** (2 min), station gecco2018, *You (operator)*:
-   - press **⏭ Next alarm**; read the banner and the *Why?* chart;
-   - read the **answer key** in the purple question box, answer **False alarm**, point at the dotted
-     **alarm line** stepping up and the sentence "the alarm line went up by 0.50";
-   - **⏭ Next alarm** until a yellow **Sensor problem** appears: "a technician's job, not a water alarm";
-   - optional: Settings → **Also run on the Arduino**: the *Arduino check* card counts *N/N* identical minutes;
-   - **⏸ Pause** → **Incident report** at the bottom; with Ollama running switch on *Let the AI write it*.
-4. **Try the sensors** (1.5 min), *Real sensors (Arduino)*, probe in tap water, wait for the first tick
-   "learned normal": salt → red water alarm; lift the probe → yellow sensor problem; touch the pad →
-   "false alarm given". All four ticks turn green.
-5. **Results** (30 s): *Honest testing* (0.98 → 0.64) and *Arduino* (your 10,080 identical minutes).
-
-For the examiners' screen you can switch off **Show help boxes** in the sidebar.
+1. **Overview** (30 s): read the header; point at the five result tiles and the five decision stages.
+2. **Operations Console** (2 min), data source *Utility data A – 2018*:
+   - **Skip to next alarm**; read the status bar, the gauge and the polar chart (which sensor changed);
+   - in **Alarm review** read the *Recorded outcome*, select **Mark as false alarm**, and show the
+     *Alarm threshold* tile and the dashed line stepping up;
+   - **Skip to next alarm** again until an amber **Sensor-fault alert** appears;
+   - optional: *Advanced options → Verify on Arduino*;
+   - scroll to **Incident report and downloads** → **Download printable report (.html)**.
+3. **Sensor Lab** (1.5 min), input *Arduino sensors*, probe in tap water: wait for *Calibrate* to complete,
+   add salt (red alarm), lift the probe (amber sensor fault), touch the pad (false alarm). All four steps
+   turn green.
+4. **Performance Analytics** (1 min): *Evaluation method* (0.98 vs 0.64), *Water event or sensor fault*
+   (Sankey diagram), *Edge device* (gauges).
+5. **Data Explorer** (30 s): press **Rotate** on the 3D sensor space.
 
 Take a few screenshots for the report and send them to me if anything looks wrong.
 
@@ -192,11 +199,11 @@ Take a few screenshots for the report and send them to me if anything looks wron
 
 | Situation | What you see |
 |---|---|
-| Uno plugged in, sketch uploaded, Serial Monitor closed | What is connected: Arduino Uno *ready*, probe/touch/DHT11 *ready*; Try the sensors uses "Real sensors (Arduino)" |
-| No Uno | Try the sensors uses the simulated probe; Watch a real station's Uno toggle is off; nothing else changes |
-| Probe wire pulled in the Try the sensors | Yellow Sensor problem within one reading (~2 s) |
+| Uno plugged in, sketch uploaded, Serial Monitor closed | System Status: Arduino Uno *ready*, probe/touch/DHT11 *ready*; Sensor Lab uses "Arduino sensors" |
+| No Uno | Sensor Lab uses the simulated probe; Operations Console's Uno toggle is off; nothing else changes |
+| Probe wire pulled in the Sensor Lab | Yellow Sensor problem within one reading (~2 s) |
 | Salt in the glass | Red Water alarm within 2–4 s; it clears once the new level is "normal" |
-| Ollama not running | Reports use the template; What is connected says how to start Ollama |
+| Ollama not running | Reports use the template; System Status says how to start Ollama |
 | Version 1 not running | Version 1 page shows its published results and how to start it |
 | GECCO files missing | Station list offers "simulated" only; every page still works |
 | Playing in the control room | Numbers and charts change in place once a second; nothing fades or jumps |
@@ -209,13 +216,13 @@ The control room's Uno check ran against the real firmware on a simulated Uno: 3
 
 - `python -m ewsv2 info` prints `built up to segment S9`.
 - All seven pages open without a red error box.
-- With the Uno: *What is connected* shows the board and the three sensors as ready.
+- With the Uno: *System Status* shows the board and the three sensors as ready.
 
 | Problem | Fix |
 |---|---|
 | `Streamlit is missing` | `pip install -r ewsv2\requirements.txt` |
 | `pyarrow requires NumPy 2.0` | `pip install "pyarrow>=19,<23"` (the requirements pin this) |
-| Try the sensors says "No probe on the board" | Close the Serial Monitor; *What is connected* → *Look for the board again* |
+| Sensor Lab says "No probe on the board" | Close the Serial Monitor; *System Status* → *Look for the board again* |
 | Port busy / Access denied | Only one program may use COM7: close Arduino IDE's Serial Monitor; do not run `python -m ewsv2 edge` while the dashboard uses the board |
 | Version 1 page empty | Start version 1 by hand (the page shows the commands); it needs its models (`python main.py --train`) |
 | Port 8502 in use | `python -m ewsv2 dashboard --set dashboard.port=8503` |
@@ -236,7 +243,7 @@ the decision logic on a physical sensor. A real change is an alarm, a broken sen
 an operator's "false alarm" makes the system less jumpy. Every case can be repeated in front of the examiners.
 
 **What if something fails during the demo?** That is the design: unplug the Uno and the laptop continues;
-stop Ollama and the template report appears; the What is connected page says what changed.
+stop Ollama and the template report appears; the System Status page says what changed.
 
 ## 8. Next segment
 

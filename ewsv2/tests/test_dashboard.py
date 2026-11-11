@@ -106,7 +106,7 @@ def test_board_service_without_a_board(monkeypatch):
     assert time.monotonic() - t0 < 2 and "no Arduino" in b.message
 
 
-PAGES = ["overview", "how_it_works", "control_room", "live_lab", "results", "reports", "version1", "system"]
+PAGES = ["overview", "control_room", "live_lab", "analytics", "explorer", "reports", "guide", "version1", "system"]
 
 
 @pytest.mark.parametrize("page", PAGES)
@@ -125,15 +125,15 @@ def test_every_page_renders_without_hardware(page, tmp_path, monkeypatch):
     at.run()
     assert not at.exception, [e.value for e in at.exception]
     if page == "control_room":
-        next(b for b in at.button if "Next alarm" in b.label).click()
+        next(b for b in at.button if "next alarm" in b.label.lower()).click()
         at.run()
         assert not at.exception
         rs = at.session_state["cr_state"]
         assert rs.pos > 0
         if rs.pending is not None:                         # the question box asks, with the answer key
             assert rs.pending["key"] in ("real event", "false alarm")
-            assert any("ANSWER KEY" in m.value for m in at.markdown)
-            next(b for b in at.button if "False alarm" in b.label).click()
+            assert any("Recorded outcome" in m.value for m in at.markdown)
+            next(b for b in at.button if "false alarm" in b.label.lower()).click()
             at.run()
             assert not at.exception
             rs = at.session_state["cr_state"]
@@ -163,3 +163,21 @@ def test_next_alarm_answers_and_verdicts_line_up():
 
 def test_cli_has_dashboard():
     assert build_parser().parse_args(["dashboard"]).config == "s9_dashboard"
+
+
+def test_charts_fall_back_without_echarts(tmp_path, monkeypatch):
+    """If the optional ECharts component is missing, gauges are drawn with Plotly instead – no error."""
+    pytest.importorskip("streamlit")
+    from streamlit.testing.v1 import AppTest
+    monkeypatch.setenv("EWSV2_NO_BOARD", "1")
+    script = tmp_path / "lab.py"
+    script.write_text(
+        "import streamlit as st\n"
+        "from ewsv2.app import ui, charts\n"
+        "charts._st_echarts = None\n"
+        "from ewsv2.app.views import live_lab\n"
+        "ui.setup_page()\n"
+        "live_lab.render()\n", encoding="utf-8")
+    at = AppTest.from_file(str(script), default_timeout=120)
+    at.run()
+    assert not at.exception, [e.value for e in at.exception]
