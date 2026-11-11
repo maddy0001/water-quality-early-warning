@@ -65,7 +65,19 @@ python -m ewsv2 board                                  # finds the Arduino, says
 python -m ewsv2 dashboard                              # the dashboard (http://localhost:8502) + version 1 if found
 python -m ewsv2 edge     --config s8_edge      [--set data.source=gecco2019]   # Uno found automatically if plugged in
 python -m ewsv2 run --config full_pipeline
+python -m ewsv2 doctor   [--no-board] [--no-llm]                # checks every part, says how to fix it
+python -m ewsv2 paper                                  # paper tables (CSV/Markdown/LaTeX) and figures (PNG/PDF)
+python -m ewsv2 capsule  --dest E:\ewsv2_capsule [--with-ollama --with-arduino --with-installers]
+python -m ewsv2 capsule  --check E:\ewsv2_capsule      # verify a capsule
 ```
+
+## Coming back after months (hand-over)
+
+1. `python -m ewsv2 doctor` – every part is listed as works / replaced / needs fixing, with the fix.
+2. If packages changed or the laptop is new: restore from the pendrive capsule
+   (`powershell -ExecutionPolicy Bypass -File E:\ewsv2_capsule\restore.ps1`), which rebuilds `venv2`
+   and version 1's `venv` offline from the exact versions in `ewsv2/handover/locks/`.
+3. `python -m ewsv2 dashboard`.
 
 ## Data
 

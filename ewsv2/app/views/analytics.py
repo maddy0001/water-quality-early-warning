@@ -57,20 +57,14 @@ def render() -> None:
                    "reset.")
     tabs = st.tabs(["Evaluation method", "Detection methods", "Water event or sensor fault", "False-alarm control",
                     "Explanations", "Incident reports", "Edge device"])
-    with tabs[0]:
-        _evaluation(ds)
-    with tabs[1]:
-        _detection(ds)
-    with tabs[2]:
-        _routing(ds)
-    with tabs[3]:
-        _false_alarms(ds)
-    with tabs[4]:
-        _explanations(ds)
-    with tabs[5]:
-        _reports(ds)
-    with tabs[6]:
-        _edge(ds)
+    for tab, fn in zip(tabs, (_evaluation, _detection, _routing, _false_alarms, _explanations, _reports, _edge)):
+        with tab:
+            try:
+                fn(ds)
+            except Exception as exc:  # noqa: BLE001 – a damaged result file must not take the page down
+                st.warning(f"A result file for this tab could not be read ({type(exc).__name__}). Re-run the "
+                           "experiment command to regenerate it; the other tabs are unaffected.",
+                           icon=":material/warning:")
 
 
 def _finding(text: str) -> None:

@@ -83,5 +83,18 @@ def render() -> None:
         out.append({"Analysis": name, "Status": "Available" if files else "Not run on this computer",
                     "Files": len(files)})
     st.dataframe(pd.DataFrame(out), hide_index=True, width="stretch")
+    ui.section("Full system check", "The same check as the command  python -m ewsv2 doctor : software versions, "
+               "data, results, AI writer, version 1, ports and disk space.")
+    if st.button("Run the full system check", icon=":material/fact_check:", key="sy_doctor"):
+        from ewsv2.handover import doctor as D
+        with st.spinner("Checking …"):
+            st.session_state["sy_doctor_res"] = D.run(board=False, llm=True)
+    res = st.session_state.get("sy_doctor_res")
+    if res:
+        label = {"ok": "Works", "degraded": "Replaced", "fail": "Needs fixing", "skipped": "Not checked"}
+        st.dataframe(pd.DataFrame([{"Area": c.area, "Part": c.name, "Result": label[c.status], "Detail": c.detail,
+                                    "How to fix": c.fix or "–"} for c in res]), hide_index=True, width="stretch")
+        ui.cap("The Arduino is not probed here because the dashboard itself holds its port; its status is shown in "
+               "the table above.")
     ui.cap(f"Software version {__version__} · Python {sys.version.split()[0]} · {platform.system()} "
            f"{platform.release()}")

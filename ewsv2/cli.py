@@ -18,6 +18,10 @@ edge --config NAME         Arduino Uno edge: reference, PC build, simulated Uno,
 board [--config s8_edge]   find the Arduino, say which sensors answer and what the system will use
 dashboard                  the operator dashboard (http://localhost:8502) + version 1 (8501) if found
 run --config NAME          run the pipeline steps built so far
+doctor [--no-board] [--no-llm]
+                           check every part and say how to fix what is missing (S10)
+capsule --dest FOLDER      offline time capsule for a pendrive; capsule --check FOLDER verifies one (S10)
+paper                      the paper's tables and figures from the results on this computer (S10)
 
 ``--set key=value`` overrides any config value, e.g.
 ``python -m ewsv2 inspect --config s0_inspect --set data.source=gecco2019``
@@ -57,11 +61,11 @@ def _load_dataset(cfg: dict):
     t0 = time.perf_counter()
     try:
         ds = source.load()
-    except FileNotFoundError as exc:
+    except Exception as exc:  # noqa: BLE001 – missing *or* damaged files: fall back if the config allows it
         fallback = data.get("fallback")
         if not fallback:
             raise
-        print(f"! {data['source']} data not found – using the '{fallback}' source instead "
+        print(f"! {data['source']} data not found or unreadable – using the '{fallback}' source instead "
               f"(results are about that source, not about {data['source']}).\n  ({str(exc).splitlines()[0]})")
         source = build("source", fallback, **(data.get("fallback_params") or {}))
         ds = source.load()
@@ -412,6 +416,31 @@ def cmd_run(args) -> int:
     return 0
 
 
+def cmd_doctor(args) -> int:
+    from ewsv2.handover import doctor as D
+    print(f"ewsv2 {__version__} – system check (this only looks; it changes nothing)")
+    checks = D.run(board=not args.no_board, llm=not args.no_llm)
+    print(D.render(checks))
+    path = D.write_report(checks, output_dir("doctor"))
+    print(f"\nReport: {path}")
+    return 1 if any(c.status == "fail" for c in checks) else 0
+
+
+def cmd_capsule(args) -> int:
+    from ewsv2.handover import capsule as K
+    if args.check:
+        return K.check(Path(args.check))
+    return K.build(Path(args.dest), wheels=not args.no_wheels, v1=not args.no_v1, ollama=args.with_ollama,
+                   arduino=args.with_arduino, installers=args.with_installers, dry_run=args.dry_run)
+
+
+def cmd_paper(args) -> int:
+    from ewsv2.handover import paper as P
+    out = P.build(output_dir("paper"))
+    print(f"\nTables and figures written to {out}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="python -m ewsv2", description="Water EWS v2 command line")
     p.add_argument("-v", "--verbose", action="store_true", help="more log output")
@@ -446,6 +475,26 @@ def build_parser() -> argparse.ArgumentParser:
             c.add_argument("--config", required=True, help="config name in ewsv2/configs or a path")
         c.add_argument("--set", action="append", metavar="KEY=VALUE", help="override a config value")
         c.set_defaults(func=func)
+
+    d = sub.add_parser("doctor", help="check every part of the system and say how to fix what is missing")
+    d.add_argument("--no-board", action="store_true", help="do not look for the Arduino")
+    d.add_argument("--no-llm", action="store_true", help="do not contact Ollama")
+    d.set_defaults(func=cmd_doctor)
+
+    k = sub.add_parser("capsule", help="write the offline time capsule (pendrive) or check one")
+    k.add_argument("--dest", help="target folder, e.g. E:\\ewsv2_capsule")
+    k.add_argument("--check", metavar="FOLDER", help="verify an existing capsule against its manifest")
+    k.add_argument("--no-wheels", action="store_true", help="skip downloading the package wheelhouses")
+    k.add_argument("--no-v1", action="store_true", help="skip version 1's wheelhouse")
+    k.add_argument("--with-ollama", action="store_true", help="also copy the Ollama models folder (~2 GB)")
+    k.add_argument("--with-arduino", action="store_true", help="also copy the Arduino IDE board files (Arduino15)")
+    k.add_argument("--with-installers", action="store_true",
+                   help="also download the Python, Ollama and Arduino IDE installers")
+    k.add_argument("--dry-run", action="store_true", help="only show what would be written and how big it is")
+    k.set_defaults(func=cmd_capsule)
+
+    pp = sub.add_parser("paper", help="write the paper's tables and figures from the results on this computer")
+    pp.set_defaults(func=cmd_paper)
     return p
 
 
@@ -458,3 +507,6 @@ def main(argv: list[str] | None = None) -> int:
     except (ConfigError, RegistryError, FileNotFoundError) as exc:
         print(f"\nError: {exc}", file=sys.stderr)
         return 2
+    except KeyboardInterrupt:
+        print("\nStopped.", file=sys.stderr)
+        return 130
