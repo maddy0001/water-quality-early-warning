@@ -52,8 +52,13 @@ static uint16_t dht_pulse(volatile uint8_t* port, uint8_t mask, bool level) {
   return n;
 }
 
+static unsigned long dht_last = 0;
+
 // 0 = ok, 1 = no answer, 2 = broken off, 3 = checksum
 inline uint8_t dht_read(int& temperature, int& humidity) {
+  unsigned long since = millis() - dht_last;     // the DHT11 needs 1 s between readings
+  if (dht_last != 0 && since < 1100) delay(1100 - since);
+  dht_last = millis();
   uint8_t data[5] = {0, 0, 0, 0, 0};
   volatile uint8_t* port = portInputRegister(digitalPinToPort(PIN_DHT));
   uint8_t mask = digitalPinToBitMask(PIN_DHT);
@@ -85,11 +90,32 @@ inline uint8_t dht_read(int& temperature, int& humidity) {
   return 0;
 }
 
+// The DHT11 must rest 1 s between reads: a read asked for sooner returns the last answer.
+static unsigned long dht_last_ms = 0;
+static uint8_t dht_last_status = 1;
+static int dht_last_t = 0, dht_last_h = 0;
+static bool dht_ever = false;
+
+inline uint8_t dht_get(int& t, int& h) {
+  if (!dht_ever || millis() - dht_last_ms >= 1100) {
+    if (dht_ever && millis() - dht_last_ms < 1100) delay(1100 - (millis() - dht_last_ms));
+    dht_last_status = dht_read(dht_last_t, dht_last_h);
+    if (dht_last_status) {                         // one retry after the rest time
+      delay(1100);
+      dht_last_status = dht_read(dht_last_t, dht_last_h);
+    }
+    dht_last_ms = millis();
+    dht_ever = true;
+  }
+  t = dht_last_t;
+  h = dht_last_h;
+  return dht_last_status;
+}
+
 inline int edge_hw_line(char* out, int n) {
   int on, off, t = 0, h = 0;
   probe_read(on, off);
-  uint8_t d = dht_read(t, h);
-  if (d) { delay(1100); d = dht_read(t, h); }      // one retry: the DHT11 needs 1 s between reads
+  uint8_t d = dht_get(t, h);
   return esnprintf(out, n, EFMT("HW,touch=%d,dht=%d,probe=%d,rfid=0"), touch_seen_low ? 1 : 0, d == 0 ? 1 : 0,
                   (on - off) >= 50 ? 1 : 0);
 }
@@ -97,6 +123,10 @@ inline int edge_hw_line(char* out, int n) {
 inline int edge_sensor_line(char* out, int n) {
   int on, off, t = 0, h = 0;
   probe_read(on, off);
-  uint8_t d = dht_read(t, h);
+  uint8_t d = dht_get(t, h);
   return esnprintf(out, n, EFMT("S,%d,%d,%d,%d,%d,%u,%d"), on, off, d, t, h, touches, touch_now ? 1 : 0);
+}
+
+inline int edge_touch_line(char* out, int n) {   // cheap: no sensor read, for polling between minutes
+  return esnprintf(out, n, EFMT("T,%u,%d,%d"), touches, touch_now ? 1 : 0, touch_seen_low ? 1 : 0);
 }

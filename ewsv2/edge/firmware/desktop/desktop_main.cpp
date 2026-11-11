@@ -12,6 +12,7 @@ unsigned long edge_now_us() {
 long edge_free_ram() { return -1; }
 int edge_hw_line(char* out, int n) { return snprintf(out, n, "HW,touch=0,dht=0,probe=0,rfid=0"); }
 int edge_sensor_line(char* out, int n) { return snprintf(out, n, "S,-1,-1,1,0,0,0,0"); }
+int edge_touch_line(char* out, int n) { return snprintf(out, n, "T,0,0,0"); }
 
 int main() {
   static EdgeCore core;

@@ -359,10 +359,14 @@ def replay(link: Link, C: np.ndarray, y_water: np.ndarray, int8: bool = True, ad
         log.warning("%s %s", link.name, info["error"])
     wall = time.perf_counter() - t0
     info["minutes_done"] = len(rows)
+    if rows and info.get("sum_us") is None:          # cut short: timing from the answers themselves
+        us = [r[8] for r in rows]
+        info["sum_us"], info["max_us"] = int(sum(us)), int(max(us))
     info["wall_seconds"] = wall
     info["round_trip_ms"] = 1000 * wall / max(len(rows), 1)
-    if info.get("sum_us") is not None and len(rows):
-        info["mean_us"] = info["sum_us"] / len(rows)
+    if rows:                                   # timing from every answer (also when the run was cut short)
+        us = np.array([r[8] for r in rows], dtype=float)
+        info["mean_us"], info["max_us"] = float(us.mean()), int(us.max())
     return pd.DataFrame(rows, columns=OUT_COLS), info
 
 

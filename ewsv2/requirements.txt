@@ -23,3 +23,8 @@ ml-dtypes<0.5           # keeps TensorFlow on NumPy 1.26 (newer ml-dtypes needs 
 
 # S8 – talks to the Arduino over USB (optional at run time: without it the board is skipped)
 pyserial>=3.5
+
+# S9 – the operator dashboard (pyarrow kept below the versions that need NumPy 2)
+streamlit>=1.49,<1.50
+plotly>=5.24,<6
+pyarrow>=19,<23

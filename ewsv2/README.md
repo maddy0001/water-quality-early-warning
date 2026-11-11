@@ -33,7 +33,8 @@ python -m pytest ewsv2\tests -q
 | `llm/` | alarm records, WHO-grounded incident reports (template / local LLM via Ollama), automatic fact check | S7 |
 | `edge/` | Uno-sized edge algorithm (Python reference), model export, Arduino sketch, PC build, simulated Uno, USB replay, board detection | S8 |
 | `hardware/` | wiring guide, hardware check sketch and guide | S8 |
-| `app/` | v2 dashboard pages | S9 |
+| `app/` | operator dashboard: control room, live sensor lab, results, reports, version 1, system check | S9 |
+| `live/` | live demo station (probe, DHT11, touch) and the board service | S9 |
 | `configs/` | experiment configs | all |
 | `docs/` | `SEGMENT_XX.md`, one per segment | all |
 
@@ -61,6 +62,7 @@ python -m ewsv2 explain  --config s6_explain   [--set data.source=gecco2019]   #
 python -m ewsv2 transfer --config s6_explain   # train on 2018, run on 2019
 python -m ewsv2 report   --config s7_reports   [--set data.source=gecco2019]   # needs Ollama for the LLM part
 python -m ewsv2 board                                  # finds the Arduino, says which sensors answer
+python -m ewsv2 dashboard                              # the dashboard (http://localhost:8502) + version 1 if found
 python -m ewsv2 edge     --config s8_edge      [--set data.source=gecco2019]   # Uno found automatically if plugged in
 python -m ewsv2 run --config full_pipeline
 ```

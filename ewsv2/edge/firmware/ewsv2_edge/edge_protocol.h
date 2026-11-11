@@ -8,6 +8,7 @@
 //   I                    information                                   -> INFO,...
 //   H                    which sensors answer                          -> HW,touch=..,dht=..,probe=..,rfid=0
 //   S                    read the sensors now                          -> S,<probe on>,<probe off>,<dht status>,<temp>,<hum>,<touches>,<touch now>
+//   T                    touch count only (fast)                       -> T,<touches>,<touch now>,<touch seen>
 // Floats are sent as the 8 hex digits of their IEEE bits, so the laptop gets them exactly.
 #pragma once
 #include <stdio.h>
@@ -25,6 +26,7 @@ unsigned long edge_now_us();   // provided by the platform
 long edge_free_ram();          // bytes free (-1 if unknown)
 int edge_hw_line(char* out, int n);       // "HW,..." – sensors that answer
 int edge_sensor_line(char* out, int n);   // "S,..." – one reading of every sensor
+int edge_touch_line(char* out, int n);    // "T,..." – touch count
 
 struct EdgeStats {
   unsigned long max_us = 0;
@@ -95,5 +97,6 @@ inline int edge_handle(EdgeCore& c, EdgeStats& st, char* line, char* out, int n)
   }
   if (line[0] == 'H') return edge_hw_line(out, n);
   if (line[0] == 'S') return edge_sensor_line(out, n);
+  if (line[0] == 'T') return edge_touch_line(out, n);
   return esnprintf(out, n, EFMT("ERR,unknown"));
 }

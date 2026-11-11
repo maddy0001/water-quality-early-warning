@@ -1,7 +1,7 @@
 # Segment 08 – The early warning on an Arduino Uno, every part optional
 
-**Status:** done and verified in the cloud (reference, PC build, and the real Uno firmware on a simulated
-Uno); the board numbers come from **your Uno** (section 4) · **Builds on:** S4 (fault checks, triage),
+**Status:** done – verified in the cloud (reference, PC build, real firmware on a simulated Uno) and on
+**your Uno** (10,080 minutes bit-identical, section 5) · **Builds on:** S4 (fault checks, triage),
 S5 (false-alarm budget, adaptive threshold), S6 (deviation explainer) · **Feeds:** S9 (dashboard and live demo)
 **Proves:** contribution **C9** – the whole decision chain (detector, adaptive threshold, fault triage,
 explanation) runs on a ₹350 8-bit Arduino Uno and gives **bit-identical** answers to the laptop;
@@ -213,11 +213,15 @@ gecco2019
 `sim` is the compiled Uno firmware (the same file you upload) running on a cycle-exact simulated
 ATmega328P at 16 MHz. Its timing is what the real chip needs.
 
-On your laptop with the Uno, expect
+**Measured on your Arduino Uno clone (31 Oct 2026, COM7, Arduino IDE build 19,316 bytes / 1,140 bytes):**
 
 ```
-  uno      10080 min: alarm 1.00000 water 1.00000 sensor 1.00000 top 1.00000 | bit-identical 1.00000 | ~25800 us/min (max ~26600), state 705 B, RAM never used ~350-400 B, ~40-60 ms round trip
+  uno      10080 min: alarm 1.00000 water 1.00000 sensor 1.00000 top 1.00000 | bit-identical 1.00000 | 25200 us/min (max 26084), state 705 B, RAM never used 423 B, 33.7 ms round trip
 ```
+
+The earlier attempt stopped at minute 7,895 when the Serial Monitor took the port. It ended cleanly,
+compared the 7,895 minutes it had (all identical) and still wrote its report: the "unplugged mid-run"
+case of the design, in practice.
 
 ### What the numbers say
 

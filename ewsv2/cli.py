@@ -16,6 +16,7 @@ transfer --config NAME     train on GECCO 2018, run on GECCO 2019 (s6_explain)
 report --config NAME       incident reports by a local LLM, fact-checked (s7_reports)
 edge --config NAME         Arduino Uno edge: reference, PC build, simulated Uno, USB replay (s8_edge)
 board [--config s8_edge]   find the Arduino, say which sensors answer and what the system will use
+dashboard                  the operator dashboard (http://localhost:8502) + version 1 (8501) if found
 run --config NAME          run the pipeline steps built so far
 
 ``--set key=value`` overrides any config value, e.g.
@@ -28,6 +29,7 @@ import argparse
 import json
 import logging
 import os
+from pathlib import Path
 import sys
 import time
 
@@ -325,6 +327,54 @@ def cmd_board(args) -> int:
     return 0
 
 
+THEME = {"base": "dark", "primaryColor": "#38bdf8", "backgroundColor": "#0a1220",
+         "secondaryBackgroundColor": "#111c2b", "textColor": "#e8eef6"}
+
+
+def _v1_command(port: int):
+    """The version-1 dashboard, started with version 1's own environment – if it is there."""
+    from ewsv2.core.paths import REPO_ROOT
+    py = REPO_ROOT / "venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    app = REPO_ROOT / "dashboard" / "app.py"
+    if not py.exists() or not app.exists():
+        return None, f"version 1 not started (needs {py.relative_to(REPO_ROOT)} and dashboard/app.py)"
+    cmd = [str(py), "-m", "streamlit", "run", "app.py", "--server.port", str(port), "--server.headless", "true",
+           "--browser.gatherUsageStats", "false"]
+    return (cmd, app.parent), f"version 1 dashboard on http://localhost:{port}"
+
+
+def cmd_dashboard(args) -> int:
+    import subprocess
+    import sys
+
+    cfg = load_config(args.config, parse_overrides(args.set))
+    d = cfg.get("dashboard") or {}
+    try:
+        import streamlit  # noqa: F401
+    except ImportError:
+        print("Streamlit is missing:  pip install -r ewsv2\\requirements.txt")
+        return 1
+    procs = []
+    if str(d.get("with_v1", "auto")).lower() not in ("false", "0", "no", "off"):
+        v1, msg = _v1_command(int(d.get("v1_port", 8501)))
+        print(f"  {msg}")
+        if v1:
+            procs.append(subprocess.Popen(v1[0], cwd=v1[1], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+    app = Path(__file__).parent / "app" / "main.py"
+    cmd = [sys.executable, "-m", "streamlit", "run", str(app), "--server.port", str(d.get("port", 8502)),
+           "--server.headless", "false" if d.get("open_browser", True) else "true", "--browser.gatherUsageStats", "false",
+           "--client.toolbarMode", "minimal"]
+    cmd += [x for k, v in THEME.items() for x in (f"--theme.{k}", v)]
+    print(f"  version 2 dashboard on http://localhost:{d.get('port', 8502)}  (Ctrl+C to stop)")
+    try:
+        return subprocess.call(cmd)
+    except KeyboardInterrupt:
+        return 0
+    finally:
+        for p in procs:
+            p.terminate()
+
+
 def cmd_inject(args) -> int:
     from ewsv2.triage.run import build_benchmark
 
@@ -385,11 +435,13 @@ def build_parser() -> argparse.ArgumentParser:
         ("report", cmd_report, "incident reports by a local LLM, fact-checked"),
         ("edge", cmd_edge, "Arduino Uno edge: reference, PC build, simulated Uno, USB replay"),
         ("board", cmd_board, "find the Arduino and say which sensors answer"),
+        ("dashboard", cmd_dashboard, "the operator dashboard and live demo (and version 1 next to it)"),
         ("run", cmd_run, "run the pipeline steps built so far"),
     ):
         c = sub.add_parser(name, help=helptext)
-        if name == "board":
-            c.add_argument("--config", default="s8_edge", help="config name (default s8_edge)")
+        if name in ("board", "dashboard"):
+            default = "s8_edge" if name == "board" else "s9_dashboard"
+            c.add_argument("--config", default=default, help=f"config name (default {default})")
         else:
             c.add_argument("--config", required=True, help="config name in ewsv2/configs or a path")
         c.add_argument("--set", action="append", metavar="KEY=VALUE", help="override a config value")

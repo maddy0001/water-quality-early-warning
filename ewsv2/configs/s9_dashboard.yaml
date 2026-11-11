@@ -1,0 +1,18 @@
+# Segment 9 – the operator dashboard and live demo. Every part optional.
+#   python -m ewsv2 dashboard                     http://localhost:8502 (also starts version 1 on 8501 if found)
+#   python -m ewsv2 dashboard --set dashboard.with_v1=false
+extends: s8_edge
+run_name: s9_dashboard
+title: Dashboard
+
+llm:                                  # same settings as S7
+  host: http://localhost:11434
+  models: [qwen2.5:3b]
+
+dashboard:
+  port: 8502
+  open_browser: true
+  with_v1: auto                       # auto: start the version-1 dashboard too if its venv and folder exist
+  v1_port: 8501
+  v1_url: http://localhost:8501
+  sources: [gecco2018, gecco2019, simulated]
