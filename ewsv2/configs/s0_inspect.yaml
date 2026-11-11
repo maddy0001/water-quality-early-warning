@@ -1,0 +1,13 @@
+# Segment 0: inspect a dataset before any modelling.
+#   python -m ewsv2 inspect --config s0_inspect
+#   python -m ewsv2 inspect --config s0_inspect --set data.source=gecco2019
+extends: base
+run_name: s0_inspection
+
+data:
+  source: gecco2018
+
+inspect:
+  baseline_minutes: 60       # window before each event used as its "normal" reference
+  shift_threshold_sd: 1.0    # a sensor "reacts" if it moves more than this many SDs
+  plots: true

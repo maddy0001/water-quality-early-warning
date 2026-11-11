@@ -1,0 +1,27 @@
+# Segment 8 – the early-warning logic on an Arduino Uno, checked against the laptop (contribution C9).
+#   python -m ewsv2 board                                                  which parts answer
+#   python -m ewsv2 edge --config s8_edge                                  reference + every available target
+#   python -m ewsv2 edge --config s8_edge --set data.source=gecco2019      second station (no Uno: its sketch holds 2018)
+# Every target is optional: one that is not available is skipped with a one-line reason.
+extends: s5_fusion
+run_name: s8_edge
+title: Arduino Uno edge
+
+data:
+  fallback: simulated     # GECCO files missing -> the simulated station (said on screen; results are about it)
+
+edge:
+  retrain: false          # true: train the edge network again; a station without a shipped model is trained once
+  epochs: 15
+  sketch_dataset: gecco2018   # the station whose model goes into the Arduino sketch (edge_model.h)
+  int8: true              # int8 weights (false: float32 weights)
+  adaptive: true          # online threshold with operator verdicts
+  targets: [desktop, sim, uno]   # desktop = C++ on this PC (needs g++), sim = simulated Uno (Linux), uno = the board
+  port: auto              # or e.g. COM7
+  baud: 115200
+  minutes: 10080          # minutes replayed to the Uno from the start of the test period (0 = all, ~1 h)
+  sim_minutes: 2880       # minutes on the simulated Uno
+  desktop_minutes: 0      # minutes on the desktop build (0 = the whole test period)
+
+board:
+  readings: 3             # sensor readings shown by  python -m ewsv2 board

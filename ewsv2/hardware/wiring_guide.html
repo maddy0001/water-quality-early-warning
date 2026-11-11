@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uno Wiring Guide</title>
+<style>
+  :root {
+    --bg: #f7f6f2; --card: #ffffff; --ink: #1d1d1b; --muted: #5d5b55; --line: #dcd9d0;
+    --board: #1f5fa8; --boardline: #174a85; --hole: #0d1b2a; --warn: #b3261e; --ok: #1e7b45;
+    --w-black: #222222; --w-red: #d62728; --w-yellow: #e0b000; --w-orange: #f07f13; --w-brown: #8c564b;
+    --w-green: #2a9d3f; --w-white: #f4f4f4; --w-grey: #8d8d8d; --w-purple: #8e5cc6; --w-blue: #2878d0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #161614; --card: #22221f; --ink: #ecebe6; --muted: #aaa79e; --line: #3a3934; --w-black: #9a9a9a; }
+  }
+  :root[data-theme="dark"] { --bg: #161614; --card: #22221f; --ink: #ecebe6; --muted: #aaa79e; --line: #3a3934; --w-black: #9a9a9a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  main { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.7rem; margin: 0 0 4px; }
+  h2 { font-size: 1.25rem; margin: 0 0 8px; display: flex; gap: 10px; align-items: center; }
+  .num { background: var(--ink); color: var(--bg); border-radius: 50%; width: 30px; height: 30px; display: inline-grid; place-items: center; font-size: 0.95rem; flex: none; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 18px 14px; margin: 16px 0; }
+  .warn { border-left: 5px solid var(--warn); }
+  .ok { border-left: 5px solid var(--ok); }
+  ol, ul { padding-left: 22px; margin: 6px 0; }
+  li { margin: 4px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 0.97rem; }
+  th, td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+  .sw { display: inline-block; width: 34px; height: 12px; border-radius: 6px; vertical-align: middle; margin-right: 6px; border: 1px solid rgba(0,0,0,.25); }
+  code, .mono { font-family: Consolas, "Cascadia Mono", monospace; font-size: 0.93em; }
+  pre { background: #10100f; color: #d8f5d0; padding: 10px 12px; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; }
+  svg { width: 100%; height: auto; display: block; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--ink); color: var(--bg); font-weight: 600; font-size: 0.9em; }
+  .tip { color: var(--muted); font-size: 0.93rem; }
+  .svgtext { fill: var(--ink); }
+  .svgmuted { fill: var(--muted); }
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+<h1>Wiring the Uno – one part at a time</h1>
+<p class="sub">Touch sensor first, then DHT11, then the water probe. 9 wires in total. The check program is <span class="mono">ewsv2\hardware\ewsv2_hwcheck</span>; the early-warning program (Segment 8) is <span class="mono">ewsv2\edge\firmware\ewsv2_edge</span>. Both use exactly this wiring.</p>
+
+<section class="warn">
+  <h2>First: is VERSION 2 on the board?</h2>
+  <p>The first lines in the Serial Monitor after pressing the Uno's reset button must say <span class="mono">=== ewsv2 hardware check VERSION 2 ===</span> and <span class="mono">Pins: touch SIG=D3 VCC=D4 | DHT11 DATA=A1 VCC=5V | probe AO=A0 VCC=A2</span>. If an error line mentions <b>D2</b> or <b>D7</b>, the old program is still on the board and cannot see the DHT11 or the probe on their new pins. Open <span class="mono">ewsv2\hardware\ewsv2_hwcheck\ewsv2_hwcheck.ino</span> from the repository and upload it again.</p>
+</section>
+
+<section class="ok">
+  <h2>Your step A result: correct</h2>
+  <p>Your output shows the board, the upload and the Serial Monitor all work. With nothing wired, <span class="mono">PROBE ... NOT DETECTED</span> and <span class="mono">DHT11 NO ANSWER</span> are the expected answers. <span class="mono">TOUCH TOUCHED</span> appears because pin D3 has nothing on it yet: an empty pin reads random values. That goes away once the touch sensor is connected.</p>
+</section>
+
+<section class="warn">
+  <h2><span class="num">0</span>Before you start</h2>
+  <ol>
+    <li><b>Unplug the USB cable from the Uno.</b> Every time you add or move a wire.</li>
+    <li><b>Keep the wires that are soldered to your touch sensor and DHT11.</b> This page uses exactly those colours.</li>
+    <li><b>Keep the 2 wires between the fork and the small blue probe board</b> (white and black). They are fine.</li>
+    <li>A wire's colour means nothing electrically. On your DHT11 the <b>red</b> wire is <b>GND</b> and the <b>brown</b> one is <b>VCC</b>; on the touch sensor <b>black</b> is <b>VCC</b>. That is unusual, so follow the tables, not habit.</li>
+  </ol>
+</section>
+
+<section>
+  <h2><span class="num">1</span>Make 9 single wires and 9 single pins</h2>
+  <ol>
+    <li><b>Wires:</b> the touch sensor and the DHT11 already have their wires. Only the probe board needs 3 extra wires: take <span class="sw" style="background:var(--w-purple)"></span>purple, <span class="sw" style="background:var(--w-grey)"></span>grey and <span class="sw" style="background:var(--w-blue)"></span>blue from your extra wires (any 3 colours work; write down which is which).</li>
+    <li><b>Pins:</b> from the long black strip of pins, snap off 9 single pins (bend between two pins until it breaks).</li>
+    <li><b>Why the pins:</b> look at the free end of each wire. If it ends in a small black plastic <i>hole</i>, it cannot go into the Uno's holes directly. Push a single pin into the Uno hole (<b>longer metal side down</b>), then slide the wire's hole onto the pin sticking up. If the wire feels loose, put the pin in the other way round. If a wire ends in a metal <i>pin</i>, push it straight into the Uno hole; no extra pin needed.</li>
+    <li>The sensor boards already have pins sticking out, so wires slide straight onto them.</li>
+  </ol>
+</section>
+
+<section>
+  <h2><span class="num">2</span>Find the 9 holes on the Uno</h2>
+  <p>Turn the Uno so the <b>USB socket is on the left</b>. Read the small white labels printed next to each row of holes.</p>
+  <div class="scroll">
+  <svg viewBox="0 0 760 400" role="img" aria-label="Arduino Uno seen from above, USB on the left, with the 9 holes that are used marked in wire colours">
+    <!-- board -->
+    <rect x="60" y="70" width="660" height="260" rx="14" fill="var(--board)" stroke="var(--boardline)" stroke-width="3"/>
+    <rect x="20" y="100" width="95" height="70" rx="6" fill="#b9bec5" stroke="#7d838b"/>
+    <text x="67" y="141" text-anchor="middle" font-size="14" font-weight="700" fill="#2b2f33">USB</text>
+    <rect x="25" y="235" width="80" height="60" rx="6" fill="#2b2b2b"/>
+    <text x="65" y="270" text-anchor="middle" font-size="11" fill="#ddd">power jack</text>
+    <rect x="300" y="175" width="160" height="50" rx="4" fill="#111" />
+    <text x="380" y="205" text-anchor="middle" font-size="12" fill="#bbb">main chip</text>
+    <text x="560" y="210" text-anchor="middle" font-size="26" font-weight="800" fill="#ffffff" opacity=".85">UNO</text>
+    <text x="590" y="120" text-anchor="middle" font-size="12" fill="#fff" opacity=".9">DIGITAL (PWM~)</text>
+    <text x="300" y="290" text-anchor="middle" font-size="12" fill="#fff" opacity=".9">POWER</text>
+    <text x="585" y="290" text-anchor="middle" font-size="12" fill="#fff" opacity=".9">ANALOG IN</text>
+
+    <!-- top header: left group 10, right group 8 -->
+    <g id="top">
+      <rect x="218" y="80" width="262" height="24" rx="3" fill="#111"/>
+      <rect x="488" y="80" width="210" height="24" rx="3" fill="#111"/>
+    </g>
+    <!-- bottom header -->
+    <rect x="228" y="296" width="210" height="24" rx="3" fill="#111"/>
+    <rect x="508" y="296" width="158" height="24" rx="3" fill="#111"/>
+
+    <!-- top left group: SCL SDA AREF GND 13 12 11 10 9 8 at x=230+26i -->
+    <g fill="#3a3a3a">
+      <rect x="225" y="87" width="10" height="10"/><rect x="251" y="87" width="10" height="10"/><rect x="277" y="87" width="10" height="10"/>
+      <rect x="329" y="87" width="10" height="10"/><rect x="355" y="87" width="10" height="10"/><rect x="381" y="87" width="10" height="10"/><rect x="407" y="87" width="10" height="10"/><rect x="433" y="87" width="10" height="10"/><rect x="459" y="87" width="10" height="10"/>
+      <!-- top right group: 7..0 at x=500+26i -->
+      <rect x="495" y="87" width="10" height="10"/><rect x="521" y="87" width="10" height="10"/><rect x="547" y="87" width="10" height="10"/><rect x="625" y="87" width="10" height="10"/>
+      <rect x="651" y="87" width="10" height="10"/><rect x="677" y="87" width="10" height="10"/>
+      <!-- bottom power: NC IOREF RESET 3.3V 5V GND GND VIN at x=240+26i -->
+      <rect x="235" y="303" width="10" height="10"/><rect x="261" y="303" width="10" height="10"/><rect x="287" y="303" width="10" height="10"/><rect x="313" y="303" width="10" height="10"/><rect x="417" y="303" width="10" height="10"/>
+      <!-- bottom analog A0..A5 at x=520+26i -->
+      <rect x="593" y="303" width="10" height="10"/><rect x="619" y="303" width="10" height="10"/><rect x="645" y="303" width="10" height="10"/>
+    </g>
+    <!-- used holes -->
+    <g stroke="#fff" stroke-width="2">
+      <circle cx="308" cy="92" r="8" fill="var(--w-white)" stroke="#555"/>   <!-- GND top -->
+      <circle cx="578" cy="92" r="8" fill="var(--w-black)"/>     <!-- D4 -->
+      <circle cx="604" cy="92" r="8" fill="var(--w-yellow)"/>  <!-- D3 -->
+      <circle cx="344" cy="308" r="8" fill="var(--w-brown)"/> <!-- 5V -->
+      <circle cx="370" cy="308" r="8" fill="var(--w-red)"/>  <!-- GND -->
+      <circle cx="396" cy="308" r="8" fill="var(--w-grey)"/>   <!-- GND -->
+      <circle cx="520" cy="308" r="8" fill="var(--w-blue)"/>   <!-- A0 -->
+      <circle cx="546" cy="308" r="8" fill="var(--w-white)" stroke="#555"/>  <!-- A1 -->
+      <circle cx="572" cy="308" r="8" fill="var(--w-purple)"/> <!-- A2 -->
+    </g>
+    <!-- labels top -->
+    <g font-size="11" class="svgtext" text-anchor="middle">
+      <text x="230" y="64">SCL</text><text x="256" y="52">SDA</text><text x="282" y="64">AREF</text>
+      <text x="308" y="52" font-weight="700" font-size="13">GND</text>
+      <text x="334" y="64">13</text><text x="360" y="64">12</text><text x="386" y="64">11</text><text x="412" y="64">10</text><text x="438" y="64">9</text><text x="464" y="64">8</text>
+      <text x="500" y="64">7</text><text x="526" y="64">6</text><text x="552" y="64">5</text>
+      <text x="578" y="52" font-weight="700" font-size="13">4</text>
+      <text x="604" y="52" font-weight="700" font-size="13">3</text>
+      <text x="630" y="64">2</text><text x="656" y="64">1</text><text x="682" y="64">0</text>
+    </g>
+    <!-- labels bottom -->
+    <g font-size="11" class="svgtext" text-anchor="middle">
+      <text x="240" y="346">–</text><text x="266" y="358">IOREF</text><text x="292" y="346">RESET</text><text x="318" y="358">3.3V</text>
+      <text x="344" y="350" font-weight="700" font-size="13">5V</text>
+      <text x="370" y="366" font-weight="700" font-size="13">GND</text>
+      <text x="396" y="350" font-weight="700" font-size="13">GND</text>
+      <text x="422" y="366">VIN</text>
+      <text x="520" y="350" font-weight="700" font-size="13">A0</text>
+      <text x="546" y="366" font-weight="700" font-size="13">A1</text>
+      <text x="572" y="350" font-weight="700" font-size="13">A2</text>
+      <text x="598" y="366">A3</text><text x="624" y="350">A4</text><text x="650" y="366">A5</text>
+    </g>
+    <text x="380" y="392" text-anchor="middle" font-size="12" class="svgmuted">Coloured circles = the 9 holes you use. Grey squares = holes you leave empty.</text>
+  </svg>
+  </div>
+  <table>
+    <tr><th>Edge</th><th>Holes used (by their printed label)</th></tr>
+    <tr><td>Top edge</td><td><b>GND</b> (just left of 13), <b>4</b>, <b>3</b></td></tr>
+    <tr><td>Bottom edge, left</td><td><b>5V</b>, <b>GND</b>, <b>GND</b> (the two GND holes next to each other)</td></tr>
+    <tr><td>Bottom edge, right</td><td><b>A0</b>, <b>A1</b>, <b>A2</b></td></tr>
+  </table>
+  <p class="tip">Your clone may print labels in a slightly different place, but the names are the same. Always go by the printed name. If you can't read a label, use your phone camera zoom.</p>
+</section>
+
+<section>
+  <h2><span class="num">3</span>Touch sensor – 3 wires to the top edge</h2>
+  <p>Your touch sensor already has 3 wires: <b>yellow = SIG</b>, <b>black = VCC</b>, <b>white = GND</b>.</p>
+  <div class="scroll">
+  <svg viewBox="0 0 760 230" role="img" aria-label="Touch sensor wiring: GND to GND, VCC to pin 4, I/O to pin 3">
+    <rect x="30" y="40" width="170" height="150" rx="10" fill="#1f5fa8"/>
+    <circle cx="115" cy="100" r="42" fill="#2c72c2" stroke="#9fc4ee" stroke-width="3"/>
+    <text x="115" y="105" text-anchor="middle" font-size="12" fill="#fff">touch pad</text>
+    <g font-size="13" font-weight="700" class="svgtext"><text x="212" y="80">GND</text><text x="212" y="120">VCC</text><text x="212" y="160">SIG</text></g>
+    <g fill="#c9a227"><rect x="196" y="72" width="12" height="10"/><rect x="196" y="112" width="12" height="10"/><rect x="196" y="152" width="12" height="10"/></g>
+    <g stroke-width="6" fill="none" stroke-linecap="round">
+      <path d="M255 77 C 380 77, 420 60, 520 60" stroke="#bbbbbb"/>
+      <path d="M255 117 C 380 117, 420 110, 520 110" stroke="var(--w-black)"/>
+      <path d="M255 157 C 380 157, 420 160, 520 160" stroke="var(--w-yellow)"/>
+    </g>
+    <g font-size="15" class="svgtext"><text x="535" y="65"><tspan font-weight="700">Uno GND</tspan> (top, left of 13)</text><text x="535" y="115"><tspan font-weight="700">Uno 4</tspan> (top edge)</text><text x="535" y="165"><tspan font-weight="700">Uno 3</tspan> (top edge)</text></g>
+    <text x="380" y="215" text-anchor="middle" font-size="12" class="svgmuted">white: GND → GND · black: VCC → 4 · yellow: SIG → 3</text>
+  </svg>
+  </div>
+  <table>
+    <tr><th>Wire</th><th>Touch board pin</th><th>Uno hole</th></tr>
+    <tr><td><span class="sw" style="background:var(--w-white)"></span>white</td><td>GND</td><td><b>GND</b>, top edge, just left of 13</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-black)"></span>black</td><td>VCC</td><td><b>4</b>, top edge</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-yellow)"></span>yellow</td><td>SIG (I/O)</td><td><b>3</b> (printed <b>~3</b>), top edge</td></tr>
+  </table>
+  <p><b>Test:</b> plug in the USB. The Serial Monitor shows <span class="mono">TOUCH now not touched</span>. Touch the round pad: the small LED on the touch board lights, and <span class="mono">touches counted</span> goes up by 1 each time.</p>
+</section>
+
+<section>
+  <h2><span class="num">4</span>DHT11 – 3 wires to the bottom edge</h2>
+  <p>Unplug the USB first. Your DHT11 already has 3 wires: <b>brown = VCC</b>, <b>white = DATA</b>, <b>red = GND</b>. Careful: here <b>red is GND</b>, not power.</p>
+  <div class="scroll">
+  <svg viewBox="0 0 760 230" role="img" aria-label="DHT11 wiring: S to A1, plus to 5V, minus to GND">
+    <rect x="30" y="40" width="170" height="150" rx="10" fill="#1f5fa8"/>
+    <rect x="60" y="62" width="85" height="105" rx="4" fill="#7ec4e8"/>
+    <g stroke="#5aa6cf" stroke-width="2"><line x1="66" y1="80" x2="139" y2="80"/><line x1="66" y1="100" x2="139" y2="100"/><line x1="66" y1="120" x2="139" y2="120"/><line x1="66" y1="140" x2="139" y2="140"/></g>
+    <text x="102" y="183" text-anchor="middle" font-size="12" fill="#fff">DHT11</text>
+    <circle cx="170" cy="60" r="6" fill="#ff3b30"/>
+    <g font-size="13" font-weight="700" class="svgtext"><text x="212" y="80">DATA</text><text x="212" y="120">VCC</text><text x="212" y="160">GND</text></g>
+    <g fill="#c9a227"><rect x="196" y="72" width="12" height="10"/><rect x="196" y="112" width="12" height="10"/><rect x="196" y="152" width="12" height="10"/></g>
+    <g stroke-width="6" fill="none" stroke-linecap="round">
+      <path d="M255 77 C 380 77, 420 60, 520 60" stroke="#bbbbbb"/>
+      <path d="M255 117 C 380 117, 420 110, 520 110" stroke="var(--w-brown)"/>
+      <path d="M255 157 C 380 157, 420 160, 520 160" stroke="var(--w-red)"/>
+    </g>
+    <g font-size="15" class="svgtext"><text x="535" y="65"><tspan font-weight="700">Uno A1</tspan> (bottom edge)</text><text x="535" y="115"><tspan font-weight="700">Uno 5V</tspan> (bottom edge)</text><text x="535" y="165"><tspan font-weight="700">Uno GND</tspan> (bottom, 1st GND)</text></g>
+    <text x="380" y="215" text-anchor="middle" font-size="12" class="svgmuted">white: DATA → A1 · brown: VCC → 5V · red: GND → GND</text>
+  </svg>
+  </div>
+  <table>
+    <tr><th>Wire</th><th>DHT11 pin</th><th>Uno hole</th></tr>
+    <tr><td><span class="sw" style="background:var(--w-white)"></span>white</td><td>DATA</td><td><b>A1</b>, bottom edge</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-brown)"></span>brown</td><td>VCC</td><td><b>5V</b>, bottom edge</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-red)"></span><b>red</b></td><td><b>GND</b> (yes, red is GND here)</td><td><b>GND</b>, bottom edge (the first GND, right next to 5V)</td></tr>
+  </table>
+  <p><b>Test:</b> plug in the USB. The DHT11's red LED lights, and within 4 seconds the Serial Monitor shows <span class="mono">DHT11 28 C, 65 % humidity -&gt; OK</span> (your numbers). Breathe on it from close by for 3 seconds: the humidity goes up, then slowly back down.</p>
+  <p class="tip">If the DHT11 board gets warm or the Uno's ON LED goes out: unplug at once. VCC and GND are swapped: brown must be on 5V and red on GND.</p>
+</section>
+
+<section>
+  <h2><span class="num">5</span>Water probe – 3 wires to the bottom edge</h2>
+  <p>Unplug the USB first. The small blue probe board has a screw knob, 2 pins on one side (already going to the fork) and <b>4 pins</b> on the other side, printed <b>VCC</b>, <b>GND</b>, <b>DO</b>, <b>AO</b>. We use 3 of the 4; <b>DO stays empty</b>.</p>
+  <div class="scroll">
+  <svg viewBox="0 0 760 260" role="img" aria-label="Probe board wiring: AO to A0, VCC to A2, GND to GND, DO empty">
+    <path d="M18 70 L18 210 M38 70 L38 210" stroke="#b08d57" stroke-width="10" stroke-linecap="round"/>
+    <text x="28" y="235" text-anchor="middle" font-size="11" class="svgmuted">fork</text>
+    <path d="M28 70 C 28 40, 60 40, 70 60" stroke="#ddd" stroke-width="4" fill="none"/>
+    <path d="M28 70 C 40 30, 70 30, 70 90" stroke="#333" stroke-width="4" fill="none"/>
+    <rect x="70" y="40" width="130" height="170" rx="10" fill="#1f5fa8"/>
+    <rect x="95" y="70" width="34" height="34" rx="4" fill="#2b6fd6" stroke="#fff"/>
+    <circle cx="112" cy="87" r="8" fill="#e6e6e6"/>
+    <text x="135" y="190" text-anchor="middle" font-size="11" fill="#fff">probe board</text>
+    <g font-size="13" font-weight="700" class="svgtext"><text x="212" y="70">VCC</text><text x="212" y="110">GND</text><text x="212" y="150">DO</text><text x="212" y="190">AO</text></g>
+    <g fill="#c9a227"><rect x="196" y="62" width="12" height="10"/><rect x="196" y="102" width="12" height="10"/><rect x="196" y="142" width="12" height="10"/><rect x="196" y="182" width="12" height="10"/></g>
+    <g stroke-width="6" fill="none" stroke-linecap="round">
+      <path d="M255 67 C 380 67, 420 60, 520 60" stroke="var(--w-purple)"/>
+      <path d="M255 107 C 380 107, 420 110, 520 110" stroke="var(--w-grey)"/>
+      <path d="M255 187 C 380 187, 420 160, 520 160" stroke="var(--w-blue)"/>
+    </g>
+    <g font-size="15" class="svgtext"><text x="535" y="65"><tspan font-weight="700">Uno A2</tspan> (bottom edge)</text><text x="535" y="115"><tspan font-weight="700">Uno GND</tspan> (bottom, 2nd GND)</text><text x="535" y="165"><tspan font-weight="700">Uno A0</tspan> (bottom edge)</text></g>
+    <text x="262" y="152" font-size="12" class="svgmuted">← leave empty</text>
+    <text x="380" y="248" text-anchor="middle" font-size="12" class="svgmuted">purple: VCC → A2 · grey: GND → GND · blue: AO → A0</text>
+  </svg>
+  </div>
+  <table>
+    <tr><th>Wire</th><th>Probe board pin</th><th>Uno hole</th></tr>
+    <tr><td><span class="sw" style="background:var(--w-purple)"></span>purple</td><td>VCC</td><td><b>A2</b>, bottom edge</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-grey)"></span>grey</td><td>GND</td><td><b>GND</b>, bottom edge (the second GND)</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-blue)"></span>blue</td><td>AO</td><td><b>A0</b>, bottom edge</td></tr>
+    <tr><td>–</td><td>DO</td><td>nothing</td></tr>
+  </table>
+  <p>VCC goes to A2, not to 5V, on purpose: the program switches the probe on only for a moment every 2 seconds, so the fork corrodes much more slowly in water. The board's power LED blinks briefly every 2 seconds.</p>
+  <p><b>Test</b> (USB plugged in):</p>
+  <ol>
+    <li>Fork in the air: <span class="mono">PROBE value 1000+ (off: 0) -&gt; connected, DRY (in air)</span>.</li>
+    <li>Dip only the two prongs about 2 cm into a glass of tap water. Hold the fork by its black top; keep the board and wires dry. The value drops (<span class="mono">WET</span>). Write the number down.</li>
+    <li>Add a spoon of salt, stir and wait 10 s. The value drops further. Write it down. This is our "water event".</li>
+    <li>Pull one fork wire off while the fork is in the water. The value jumps back to dry. This is our "sensor broke" case.</li>
+    <li>Rinse and dry the fork.</li>
+  </ol>
+</section>
+
+<section>
+  <h2><span class="num">6</span>Check everything, then send me this</h2>
+  <p>All 9 wires at once:</p>
+  <table>
+    <tr><th>Wire</th><th>From (sensor pin)</th><th>To (Uno hole)</th></tr>
+    <tr><td><span class="sw" style="background:var(--w-white)"></span>white</td><td>Touch GND</td><td>GND – top edge, left of 13</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-black)"></span>black</td><td>Touch VCC</td><td>4 – top edge</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-yellow)"></span>yellow</td><td>Touch SIG</td><td>3 – top edge</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-brown)"></span>brown</td><td>DHT11 VCC</td><td>5V – bottom edge</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-red)"></span>red</td><td>DHT11 GND</td><td>GND – bottom edge (first)</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-white)"></span>white</td><td>DHT11 DATA</td><td>A1 – bottom edge</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-grey)"></span>grey</td><td>Probe board GND</td><td>GND – bottom edge (second)</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-purple)"></span>purple</td><td>Probe board VCC</td><td>A2 – bottom edge</td></tr>
+    <tr><td><span class="sw" style="background:var(--w-blue)"></span>blue</td><td>Probe board AO</td><td>A0 – bottom edge</td></tr>
+  </table>
+  <p>With all three working, one report looks like this:</p>
+<pre>PROBE  value 1012 (off: 0)  -> connected, DRY (in air)
+TOUCH  now not touched, touches counted: 5
+DHT11  29 C, 68 % humidity  -> OK</pre>
+  <p>Copy the Serial Monitor text (click inside it, <b>Ctrl+A</b>, <b>Ctrl+C</b>) and paste it to me, with your 3 probe numbers: air, tap water, salt water. A photo of the wired board also helps me check it.</p>
+  <p class="tip">Stuck on a part? Leave it unwired and send what you have. Every part is optional in the project.</p>
+</section>
+</main>
+</body>
+</html>

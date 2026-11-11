@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="48" viewBox="0 0 260 48">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0284c7"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
+  <rect x="2" y="4" width="40" height="40" rx="12" fill="url(#g)"/>
+  <path d="M22 11c-5 6.4-9 11.5-9 16.1a9 9 0 0 0 18 0C31 22.5 27 17.4 22 11z" fill="#fff"/>
+  <text x="52" y="22" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800" fill="#ffffff">Water Quality</text>
+  <text x="52" y="40" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#94a3b8">Early Warning System · v2</text>
+</svg>

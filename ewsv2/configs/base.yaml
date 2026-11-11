@@ -1,0 +1,12 @@
+# Shared defaults. Other configs start with `extends: base` and override keys.
+run_name: base
+seed: 42
+
+data:
+  source: gecco2018          # gecco2018 | gecco2019 | csv
+  params: {}                 # e.g. {data_dir: data/raw/gecco}
+
+# Pipeline steps in order. Each segment makes more of them real:
+#   load (S0) -> split, evaluate (S1) -> features, signals (S2-S3) -> inject, triage (S4)
+#   -> fuse, calibrate (S5) -> explain (S6) -> report (S7) -> edge (S8) -> dashboard (S9)
+pipeline: [load]

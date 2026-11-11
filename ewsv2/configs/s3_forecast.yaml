@@ -1,0 +1,24 @@
+# Segment 3 – forecast surprise (signal F), honest protocol D.
+#   python -m ewsv2 evaluate --config s3_forecast
+#   python -m ewsv2 evaluate --config s3_forecast --set data.source=gecco2019
+#
+# Rows in the report:
+#   random_forest                      S1 bar (supervised)
+#   squared_diff                       S1 "one-liner" baseline (no model at all)
+#   forecast_persistence               value 5 minutes ago as the forecast
+#   forecast_linear                    ridge regression on the last 30 minutes
+#   v1_gru_attention                   paper 1's GRU-attention forecaster
+#   v1_bilstm_attention                paper 1's BiLSTM-attention forecaster
+#   <forecaster>:surprise_mean         mean instead of max over sensors
+extends: s1_baselines
+run_name: s3_forecast
+title: Forecast surprise
+
+evaluate:
+  signals:
+    - random_forest
+    - squared_diff
+    - {name: forecast_persistence, params: {lookback: 30, horizon: 5}}
+    - {name: forecast_linear, params: {lookback: 30, horizon: 5}}
+    - {name: v1_gru_attention, params: {lookback: 30, horizon: 5, max_windows: 20000, epochs: 10}}
+    - {name: v1_bilstm_attention, params: {lookback: 30, horizon: 5, max_windows: 20000, epochs: 10}}

@@ -1,0 +1,85 @@
+# Guidance snippets the report writer may cite (Segment 7).
+# Every snippet names its source. "WHO" snippets are quoted from WHO documents; "project"
+# snippets are this project's own operating notes, not WHO text. Edit or extend freely:
+# roles must match ewsv2/inject/signatures.py ROLES, "kinds" the alarm kinds (water, sensor).
+
+- id: W1
+  roles: [chlorine]
+  source: "WHO Guidelines for Drinking-water Quality, 4th ed. incl. 1st and 2nd addenda (2022) – chlorine fact sheet"
+  text: >-
+    The WHO guideline value for free chlorine is 5 mg/l. It is normal practice to supply water
+    with a chlorine residual of a few tenths of a milligram per litre to guard against
+    recontamination; chlorine is present in most disinfected drinking-water at 0.2-1 mg/l.
+
+- id: W2
+  roles: [chlorine]
+  source: "WHO chemical fact sheet – chlorine dioxide, chlorite and chlorate"
+  text: >-
+    WHO has not set a guideline value for chlorine dioxide itself, because chlorine dioxide
+    remaining at the tap is reduced to chlorite and chloride on ingestion. The provisional
+    guideline values are 0.7 mg/l for chlorite and 0.7 mg/l for chlorate. The taste and odour
+    threshold for chlorine dioxide is 0.2-0.4 mg/l.
+
+- id: W3
+  roles: [turbidity]
+  source: "WHO Guidelines for Drinking-water Quality (2017), as summarised in USAID Annex 4 (2018)"
+  text: >-
+    Turbidity should remain below 5 NTU and, if possible, below 1 NTU.
+
+- id: W4
+  roles: [ph]
+  source: "WHO Guidelines for Drinking-water Quality (2017), as summarised in USAID Annex 4 (2018)"
+  text: >-
+    The optimum pH range for most water systems is 6.5 to 8; keeping pH in this range
+    generally prevents corrosion and supports proper operation.
+
+- id: N1
+  roles: [conductivity]
+  source: "project note (not WHO)"
+  text: >-
+    WHO sets no health-based guideline value for conductivity; at this station it is an
+    indicator that the water has changed (for example dissolved salts).
+
+- id: N2
+  roles: [orp]
+  source: "project note (not WHO)"
+  text: >-
+    WHO sets no health-based guideline value for redox potential; it follows the disinfectant
+    and is an indicator that the water has changed.
+
+- id: N3
+  roles: [organics]
+  source: "project note (not WHO)"
+  text: >-
+    WHO sets no health-based guideline value for the spectral absorption coefficient; it is an
+    indicator of organic matter in the water.
+
+- id: N4
+  roles: [temperature]
+  source: "project note (not WHO)"
+  text: >-
+    WHO sets no health-based guideline value for temperature; it is an indicator of the water's
+    origin and age.
+
+- id: N5
+  roles: [flow]
+  source: "project note (not WHO)"
+  text: >-
+    Flow is an operating variable, not a water quality parameter; a change in flow can bring
+    water of a different origin to the station.
+
+- id: P1
+  kinds: [water]
+  source: "project note (not WHO)"
+  text: >-
+    For a water quality alarm: take a grab sample at the station, compare it with the online
+    analysers, check recent treatment and network operations, and follow the utility's
+    incident plan.
+
+- id: P2
+  kinds: [sensor]
+  source: "project note (not WHO)"
+  text: >-
+    For a sensor fault alert: check the named analyser on site (power, signal cable, sample
+    flow, reagents, calibration) and confirm with a portable meter before trusting its
+    readings again.

@@ -1,0 +1,45 @@
+# Segment 1 – leakage audit (contribution C2) on GECCO 2018.
+#   python -m ewsv2 evaluate --config s1_audit
+# Same signals, four protocols. A–C mimic choices found in published GECCO work;
+# D is the honest protocol used for everything from now on.
+extends: base
+run_name: s1_audit
+title: Leakage audit
+
+data:
+  source: gecco2018
+
+evaluate:
+  tolerance_after: 0
+  merge_gap: 5
+  max_episode_minutes: 60
+  bootstrap: 1000
+  signals:
+    - random_score
+    - squared_diff
+    - moving_variance
+    - rolling_zscore
+    - static_limits
+    - isolation_forest
+    - random_forest
+  protocols:
+    - name: A_random
+      label: "A. Random 70:30 minutes, threshold tuned on test"
+      splitter: {name: random, params: {test_frac: 0.3}}
+      threshold: {choose_on: test, objective: point_f1}
+      headline: point_f1
+    - name: B_half
+      label: "B. First vs second half of the 2018 training file, threshold tuned on test"
+      splitter: {name: chrono, params: {period: train, fit_frac: 0.5}}
+      threshold: {choose_on: test, objective: pa_f1}
+      headline: pa_f1
+    - name: C_oracle
+      label: "C. Official test period, threshold tuned on test"
+      splitter: {name: official, params: {cv_folds: 4, gap_minutes: 1440}}
+      threshold: {choose_on: test, objective: event_f1}
+      headline: event_f1
+    - name: D_honest
+      label: "D. Official test period, threshold from blocked cross-validation (honest)"
+      splitter: {name: official, params: {cv_folds: 4, gap_minutes: 1440}}
+      threshold: {choose_on: val, objective: event_f1}
+      headline: event_f1

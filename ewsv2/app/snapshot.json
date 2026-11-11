@@ -1,0 +1,31 @@
+{
+  "_note": "Headline results of segments S1–S8 as measured (cloud and the student's laptop). Shown when the output files are not on this computer.",
+  "leakage": {"random_split_event_f1": 0.98, "honest_event_f1": 0.64, "model": "Random Forest, GECCO 2018",
+               "baselines_2018": {"random_forest": 0.64, "isolation_forest": 0.22, "static_limits": 0.20, "rolling_zscore": 0.12, "moving_variance": 0.12, "squared_diff": 0.12, "random_score": 0.04},
+               "baselines_2019": {"random_forest": 0.91, "static_limits": 0.42, "moving_variance": 0.42, "isolation_forest": 0.40, "squared_diff": 0.37, "rolling_zscore": 0.22, "random_score": 0.04}},
+  "paper1_on_real_data": [
+    {"part": "Fixed 2-of-4 anomaly rule (paper 1)", "v2_test": "GECCO 2018 stream, honest protocol", "result": "46/46 events but 33.3 false alarms/day (2019: 21.5/day)"},
+    {"part": "Same 4 detectors, threshold set honestly", "v2_test": "S2", "result": "6/46 events, 0.00 false alarms/day"},
+    {"part": "RF + XGBoost + SVM ensemble (paper 1)", "v2_test": "S2, with coherence features", "result": "37/46 events, 0.92 FA/day (2019: 12/12, 0.09)"},
+    {"part": "BiLSTM-attention forecaster (paper 1)", "v2_test": "S3, as forecast surprise", "result": "event F1 0.20 (2018); simple persistence 0.25"},
+    {"part": "Hand weights 0.40/0.30/0.30 (paper 1)", "v2_test": "S5, adaptive budget", "result": "39/46, 18/30 contaminants at 1.00 FA/day – as good as learned weights (38/46, 18/30)"},
+    {"part": "TreeSHAP explanations (paper 1)", "v2_test": "S6, deletion test", "result": "faithful 0.74 vs 0.95–1.00 for the simple deviation explainer"},
+    {"part": "4-level alert (paper 1)", "v2_test": "S7, applied to sensors", "result": "kept: LOW / MEDIUM / CRITICAL by number of sensors beyond normal"}
+  ],
+  "triage": {"2018": {"detector_only": {"faults_to_water": 7, "water_fa_day": 0.45}, "rules": {"faults_to_sensor": 14, "faults_to_water": 1, "water_fa_day": 0.21}},
+             "2019": {"detector_only": {"faults_to_water": 3, "water_fa_day": 0.14}, "rules": {"faults_to_sensor": 14, "faults_to_water": 0, "water_fa_day": 0.00}}},
+  "budget": {"fixed_fa_day_range_2018": [0.31, 1.50], "adaptive_fa_day_range_2018": [0.97, 1.01],
+             "fixed_fa_day_range_2019": [0.05, 3.54], "adaptive_fa_day_range_2019": [0.90, 1.18]},
+  "pipeline_2018": {"real": "34/46", "contaminants": "18/30", "faults_to_sensor": "18/24", "faults_to_water": 1, "water_fa_day": 0.45},
+  "explanations": {"deviation_hit1_2018": [0.94, 1.0], "treeshap_faithful": [0.74, 0.75], "deviation_faithful": [0.95, 1.0]},
+  "llm": [{"model": "qwen2.5:3b", "station": "gecco2018", "faithful": 1.00, "seconds": 5.3, "reports": 33},
+          {"model": "llama3.2:3b", "station": "gecco2018", "faithful": 1.00, "seconds": 7.6, "reports": 33},
+          {"model": "qwen2.5:3b", "station": "gecco2019", "faithful": 0.96, "seconds": 6.6, "reports": 27},
+          {"model": "template", "station": "both", "faithful": 1.00, "seconds": 0.0, "reports": 60}],
+  "edge": {"weights": 625, "int8_bytes": 712, "flash_bytes": 19316, "ram_bytes": 1140, "uno_minutes": 10080,
+           "bit_identical": 1.0, "us_per_minute": 25200, "max_us": 26084, "ram_never_used": 423, "round_trip_ms": 33.7,
+           "real": "41/46", "contaminants": "17/30", "faults_to_sensor": "18/24", "faults_to_water": 2, "water_fa_day": 0.48,
+           "bilstm_weights": 310602},
+  "v1": {"classification_accuracy": 0.6175, "roc_auc": 0.6662, "f1": 0.5302, "bilstm_rmse": 0.0524, "bilstm_r2": 0.5251,
+         "anomaly_rate": 0.0421, "venue": "ICESC 2026 (IEEE), Paper ID 469", "url": "https://ieeexplore.ieee.org/document/11687079"}
+}
